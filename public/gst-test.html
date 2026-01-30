@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GST Verification Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .captcha-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        #captchaImage {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            max-width: 200px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .refresh-btn {
+            background: #28a745;
+            width: auto;
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .result pre {
+            margin: 10px 0 0 0;
+            padding: 10px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>GST Verification</h1>
+        
+        <form id="gstForm">
+            <div class="form-group">
+                <label for="gstin">GSTIN Number:</label>
+                <input type="text" id="gstin" placeholder="Enter 15-digit GSTIN" maxlength="15" value="07AOWPK9610A1ZU" required>
+            </div>
+
+            <button type="submit" id="submitBtn">Verify GSTIN</button>
+        </form>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('gstForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const gstin = document.getElementById('gstin').value.trim();
+            const submitBtn = document.getElementById('submitBtn');
+
+            if (!gstin || gstin.length !== 15) {
+                showResult('Please enter a valid 15-digit GSTIN', false);
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Verifying...';
+
+            try {
+                const response = await fetch(`http://localhost:3000/api/gst/${gstin}`);
+                const data = await response.json();
+
+                if (data.success && data.data.flag) {
+                    showResult('GSTIN Verified Successfully!', true, data.data.data);
+                } else {
+                    showResult('Verification Failed: ' + (data.error || 'Invalid GSTIN'), false);
+                }
+            } catch (error) {
+                showResult('Error: ' + error.message, false);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Verify GSTIN';
+            }
+        });
+
+        function showResult(message, isSuccess, data = null) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'result ' + (isSuccess ? 'success' : 'error');
+            
+            let html = '<strong>' + message + '</strong>';
+            if (data) {
+                html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            }
+            
+            resultDiv.innerHTML = html;
+            resultDiv.style.display = 'block';
+        }
+
+        window.addEventListener('load', () => {
+            document.getElementById('gstin').focus();
+        });
+    </script>
+</body>
+</html>
