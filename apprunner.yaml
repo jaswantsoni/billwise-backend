@@ -15,3 +15,5 @@ run:
   env:
     - name: NODE_ENV
       value: production
+    - name: PORT
+      value: "3000"
