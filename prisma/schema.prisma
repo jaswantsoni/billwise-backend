@@ -22,9 +22,20 @@ model Organisation {
   id        String     @id @default(auto()) @map("_id") @db.ObjectId
   name      String
   gstin     String?    @unique
+  pan       String?
   address   String
+  city      String?
+  state     String?
+  stateCode String?
+  pincode   String?
   phone     String
   email     String
+  logo      String?
+  bankName  String?
+  accountNumber String?
+  ifsc      String?
+  branch    String?
+  upi       String?
   userId    String     @db.ObjectId
   user      User       @relation(fields: [userId], references: [id])
   customers Customer[]
@@ -93,12 +104,25 @@ model Invoice {
   shippingAddressId  String?       @db.ObjectId
   invoiceDate        DateTime
   dueDate            DateTime
+  placeOfSupply      String?
+  reverseCharge      Boolean       @default(false)
+  invoiceCopyType    String        @default("ORIGINAL")
   subtotal           Float
+  cgst               Float         @default(0)
+  sgst               Float         @default(0)
+  igst               Float         @default(0)
+  cess               Float         @default(0)
+  roundOff           Float         @default(0)
   totalTax           Float
   total              Float
+  amountInWords      String?
   notes              String?
+  termsConditions    String?
+  declaration        String?
   status             String        @default("DRAFT")
   organisationId     String        @db.ObjectId
+  htmlTemplate       String?
+  cssTemplate        String?
   items              InvoiceItem[]
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
@@ -111,9 +135,15 @@ model InvoiceItem {
   productId   String   @db.ObjectId
   product     Product  @relation(fields: [productId], references: [id])
   description String
+  hsnSac      String?
   quantity    Float
+  unit        String   @default("PCS")
   rate        Float
+  discount    Float    @default(0)
   taxRate     Float
+  cgst        Float    @default(0)
+  sgst        Float    @default(0)
+  igst        Float    @default(0)
   amount      Float
   taxAmount   Float
   createdAt   DateTime @default(now())

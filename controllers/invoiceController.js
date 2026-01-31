@@ -12,7 +12,12 @@ exports.createInvoice = async (req, res) => {
       subtotal,
       totalTax,
       total,
-      notes
+      notes,
+      placeOfSupply,
+      reverseCharge,
+      invoiceCopyType,
+      termsConditions,
+      declaration
     } = req.body;
 
     const organisations = await prisma.organisation.findMany({
@@ -25,6 +30,7 @@ exports.createInvoice = async (req, res) => {
     }
 
     const organisationId = organisations[0].id;
+    const organisation = organisations[0];
 
     const customer = await prisma.customer.findFirst({
       where: { id: customerId, organisationId }
@@ -34,11 +40,12 @@ exports.createInvoice = async (req, res) => {
       return res.status(400).json({ success: false, error: 'Customer not found' });
     }
 
+    let billingAddress = null;
     if (billingAddressId) {
-      const address = await prisma.address.findFirst({
+      billingAddress = await prisma.address.findFirst({
         where: { id: billingAddressId, customerId }
       });
-      if (!address) {
+      if (!billingAddress) {
         return res.status(400).json({ success: false, error: 'Billing address not found' });
       }
     }
@@ -61,6 +68,10 @@ exports.createInvoice = async (req, res) => {
       }
     }
 
+    const orgState = organisation.state || '';
+    const billState = billingAddress?.state || '';
+    const isInterstate = orgState && billState && orgState !== billState;
+
     const year = new Date().getFullYear();
     const lastInvoice = await prisma.invoice.findFirst({
       where: { invoiceNumber: { startsWith: `INV-${year}-` } },
@@ -77,23 +88,44 @@ exports.createInvoice = async (req, res) => {
 
     let calculatedSubtotal = 0;
     let calculatedTotalTax = 0;
+    let totalCGST = 0;
+    let totalSGST = 0;
+    let totalIGST = 0;
 
-    const validatedItems = items.map(item => {
+    const validatedItems = await Promise.all(items.map(async item => {
+      const product = await prisma.product.findUnique({ where: { id: item.productId } });
       const itemAmount = item.quantity * item.rate;
       const itemTaxAmount = itemAmount * (item.taxRate / 100);
       calculatedSubtotal += itemAmount;
       calculatedTotalTax += itemTaxAmount;
 
+      let cgst = 0, sgst = 0, igst = 0;
+      if (isInterstate) {
+        igst = itemTaxAmount;
+        totalIGST += igst;
+      } else {
+        cgst = itemTaxAmount / 2;
+        sgst = itemTaxAmount / 2;
+        totalCGST += cgst;
+        totalSGST += sgst;
+      }
+
       return {
         productId: item.productId,
         description: item.description,
+        hsnSac: item.hsnSac || product?.hsnCode || product?.sacCode || '',
         quantity: item.quantity,
+        unit: item.unit || product?.unit || 'PCS',
         rate: item.rate,
+        discount: item.discount || 0,
         taxRate: item.taxRate,
+        cgst,
+        sgst,
+        igst,
         amount: itemAmount,
         taxAmount: itemTaxAmount
       };
-    });
+    }));
 
     const calculatedTotal = calculatedSubtotal + calculatedTotalTax;
 
@@ -105,10 +137,18 @@ exports.createInvoice = async (req, res) => {
         shippingAddressId,
         invoiceDate: new Date(invoiceDate),
         dueDate: new Date(dueDate),
+        placeOfSupply: placeOfSupply || billState,
+        reverseCharge: reverseCharge || false,
+        invoiceCopyType: invoiceCopyType || 'ORIGINAL',
         subtotal: calculatedSubtotal,
+        cgst: totalCGST,
+        sgst: totalSGST,
+        igst: totalIGST,
         totalTax: calculatedTotalTax,
         total: calculatedTotal,
         notes,
+        termsConditions,
+        declaration,
         status: 'DRAFT',
         organisationId,
         items: {
@@ -150,7 +190,8 @@ exports.getInvoices = async (req, res) => {
 
     res.json({ success: true, data: invoices });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to fetch invoices' });
+    console.error('Get invoices error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch invoices', details: error.message });
   }
 };
 
@@ -189,6 +230,7 @@ exports.getInvoice = async (req, res) => {
 
     res.json({ success: true, data: invoice });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Failed to fetch invoice' });
+    console.error('Get invoice error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch invoice', details: error.message });
   }
 };

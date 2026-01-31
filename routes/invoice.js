@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const invoiceController = require('../controllers/invoiceController');
+const pdfController = require('../controllers/pdfController');
 const { authenticate } = require('../middleware/auth');
 
 /**
@@ -91,5 +92,30 @@ router.get('/', authenticate, invoiceController.getInvoices);
  *         description: Invoice details
  */
 router.get('/:id', authenticate, invoiceController.getInvoice);
+
+/**
+ * @swagger
+ * /api/invoices/{id}/pdf:
+ *   get:
+ *     summary: Generate invoice PDF
+ *     tags: [Invoices]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: PDF generated successfully
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ */
+router.get('/:id/pdf', authenticate, pdfController.generateInvoicePDF);
 
 module.exports = router;
