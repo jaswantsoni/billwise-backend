@@ -14,13 +14,20 @@ exports.register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
-      data: { email, name, password: hashedPassword }
+      data: { 
+        email, 
+        name, 
+        password: hashedPassword
+      }
     });
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
     res.json({ success: true, token, user: { id: user.id, email, name } });
   } catch (error) {
+    if (error.code === 'P2002') {
+      return res.status(400).json({ error: error });
+    }
     res.status(500).json({ error: 'Registration failed' });
   }
 };

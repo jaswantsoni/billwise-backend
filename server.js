@@ -27,7 +27,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static('public'));
 app.use(session({
-  secret: process.env.SESSION_SECRET,
+  secret: process.env.SESSION_SECRET || 'fallback-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false
 }));

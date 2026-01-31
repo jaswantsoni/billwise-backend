@@ -17,6 +17,9 @@ exports.createOrganisation = async (req, res) => {
 
     res.json({ success: true, data: organisation });
   } catch (error) {
+    if (error.code === 'P2002' && error.meta?.target?.includes('gstin')) {
+      return res.status(400).json({ error: 'GSTIN already registered with another organisation' });
+    }
     res.status(500).json({ error: 'Failed to create organisation' });
   }
 };
