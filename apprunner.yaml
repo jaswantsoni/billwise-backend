@@ -1,5 +1,5 @@
 version: 1.0
-runtime: nodejs20
+runtime: nodejs22
 build:
   commands:
     pre-build:
@@ -8,7 +8,7 @@ build:
     build:
       - echo "Build completed"
 run:
-  runtime-version: 20
+  runtime-version: 22
   command: npm start
   network:
     port: 3000
