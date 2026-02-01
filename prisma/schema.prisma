@@ -45,6 +45,14 @@ model Organisation {
   authorizedSignatory String?
   signatureUrl      String?
   companySealUrl    String?
+
+  invoicePrefix     String     @default("INV")
+  purchasePrefix    String     @default("PUR")
+  challanPrefix     String     @default("CHL")
+  MemoPrefix        String     @default("MEM")
+  performanceReportPrefix String @default("PRF")
+  estimatePrefix  String     @default("EST")
+  qoutePrefix     String     @default("QUO")
   
   userId            String     @db.ObjectId
   user              User       @relation(fields: [userId], references: [id])
@@ -119,7 +127,7 @@ model Product {
 
 model Invoice {
   id                 String        @id @default(auto()) @map("_id") @db.ObjectId
-  invoiceNumber      String        @unique
+  invoiceNumber      String        
   invoiceType        String        @default("TAX_INVOICE")
   invoiceCopyType    String        @default("ORIGINAL")
   customerId         String        @db.ObjectId
@@ -186,6 +194,8 @@ model Invoice {
   items              InvoiceItem[]
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
+
+  @@unique([organisationId, invoiceNumber])
 }
 
 model InvoiceItem {

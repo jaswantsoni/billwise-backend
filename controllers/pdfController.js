@@ -7,6 +7,17 @@ const { PDFDocument } = require('pdf-lib');
 
 const GOTENBERG_URL = process.env.GOTENBERG_URL || 'http://localhost:3001';
 
+// Wake up Gotenberg service (Railway free tier sleeps)
+const wakeUpGotenberg = async () => {
+  try {
+    await axios.get(`${GOTENBERG_URL}/health`, { timeout: 5000 });
+  } catch (err) {
+    console.log('Gotenberg sleeping, waking up... (waiting 15 seconds)');
+    await new Promise(resolve => setTimeout(resolve, 15000));
+    await axios.get(`${GOTENBERG_URL}/health`, { timeout: 15000 });
+  }
+};
+
 const STATE_CODES = {
   'Andhra Pradesh': '37', 'Arunachal Pradesh': '12', 'Assam': '18', 'Bihar': '10',
   'Chhattisgarh': '22', 'Goa': '30', 'Gujarat': '24', 'Haryana': '06', 'Himachal Pradesh': '02',
@@ -302,6 +313,8 @@ const generateInvoiceHTML = async (invoice, organisation, billingAddress, shippi
 
 exports.generateInvoicePDF = async (req, res) => {
   try {
+    await wakeUpGotenberg();
+
     const invoice = await prisma.invoice.findUnique({
       where: { id: req.params.id },
       include: {
@@ -377,7 +390,7 @@ exports.generateInvoicePDF = async (req, res) => {
     const mergedPdfBytes = await mergedPdf.save();
     
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="Invoice-${invoice.invoiceNumber}.pdf"`);
+    res.setHeader('Content-Disposition', `inline; filename="${invoice.invoiceNumber}.pdf"`);
     res.send(Buffer.from(mergedPdfBytes));
   } catch (error) {
     console.error('PDF Generation Error:', error);

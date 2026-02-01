@@ -5,6 +5,8 @@ const session = require('express-session');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
 const passport = require('./config/passport');
+const cron = require('node-cron');
+const axios = require('axios');
 const gstRoutes = require('./routes/gst');
 const ewayRoutes = require('./routes/eway');
 const authRoutes = require('./routes/auth');
@@ -20,6 +22,17 @@ const hsnRoutes = require('./routes/hsn');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const GOTENBERG_URL = process.env.GOTENBERG_URL || 'http://localhost:3001';
+
+// Keep Gotenberg awake - ping every 10 minutes
+cron.schedule('*/10 * * * *', async () => {
+  try {
+    await axios.get(`${GOTENBERG_URL}/health`, { timeout: 5000 });
+    console.log('Gotenberg keepalive ping successful');
+  } catch (err) {
+    console.log('Gotenberg keepalive ping failed (service may be sleeping)');
+  }
+});
 
 app.use(cors({
   origin: ['http://localhost:8080', 'http://localhost:5173', 'http://localhost:3000', process.env.FRONTEND_URL].filter(Boolean),

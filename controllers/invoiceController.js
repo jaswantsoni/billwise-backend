@@ -1,7 +1,23 @@
 const prisma = require('../config/prisma');
+const axios = require('axios');
+
+const GOTENBERG_URL = process.env.GOTENBERG_URL || 'http://localhost:3001';
+
+// Wake up Gotenberg service
+const wakeUpGotenberg = async () => {
+  try {
+    await axios.get(`${GOTENBERG_URL}/health`, { timeout: 5000 });
+  } catch (err) {
+    console.log('Waking up PDF service...');
+    await new Promise(resolve => setTimeout(resolve, 15000));
+    await axios.get(`${GOTENBERG_URL}/health`, { timeout: 15000 }).catch(() => {});
+  }
+};
 
 exports.createInvoice = async (req, res) => {
   try {
+    // Wake up Gotenberg in background (non-blocking)
+    wakeUpGotenberg().catch(() => {});
     const {
       customerId,
       billingAddressId,
@@ -91,7 +107,7 @@ exports.createInvoice = async (req, res) => {
 
     const year = new Date().getFullYear();
     const lastInvoice = await prisma.invoice.findFirst({
-      where: { invoiceNumber: { startsWith: `INV-${year}-` } },
+      where: {organisationId },
       orderBy: { createdAt: 'desc' }
     });
 
@@ -205,9 +221,9 @@ exports.createInvoice = async (req, res) => {
       const product = await tx.product.findUnique({ where: { id: item.productId } });
       const newStock = product.stock - item.quantity;
 
-      if (newStock < 0) {
-        throw new Error(`Insufficient stock for product: ${product.name}. Available: ${product.stock}, Required: ${item.quantity}`);
-      }
+      // if (newStock < 0) {
+      //   throw new Error(`Insufficient stock for product: ${product.name}. Available: ${product.stock}, Required: ${item.quantity}`);
+      // }
 
       await tx.product.update({
         where: { id: item.productId },
