@@ -13,6 +13,8 @@ const customerRoutes = require('./routes/customer');
 const productRoutes = require('./routes/product');
 const addressRoutes = require('./routes/address');
 const invoiceRoutes = require('./routes/invoice');
+const supplierRoutes = require('./routes/supplier');
+const purchaseRoutes = require('./routes/purchase');
 
 const hsnRoutes = require('./routes/hsn');
 
@@ -48,6 +50,8 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/addresses', addressRoutes);
 app.use('/api/invoices', invoiceRoutes);
+app.use('/api/suppliers', supplierRoutes);
+app.use('/api/purchases', purchaseRoutes);
 app.use('/api/hsn', hsnRoutes);
 
 app.listen(PORT, () => {

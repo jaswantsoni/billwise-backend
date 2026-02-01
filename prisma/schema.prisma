@@ -49,7 +49,9 @@ model Organisation {
   userId            String     @db.ObjectId
   user              User       @relation(fields: [userId], references: [id])
   customers         Customer[]
+  suppliers         Supplier[]
   products          Product[]
+  purchases         Purchase[]
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 }
@@ -94,11 +96,21 @@ model Product {
   sacCode        String?
   unit           String
   price          Float
+  purchasePrice  Float         @default(0)
   taxRate        Float
+  stock          Float         @default(0)
+  totalPurchased Float         @default(0)
+  totalSold      Float         @default(0)
+  minStock       Float         @default(0)
+  maxStock       Float         @default(0)
+  reorderLevel   Float         @default(0)
+  discount       Float         @default(0)
   currency       String        @default("INR")
   organisationId String        @db.ObjectId
   organisation   Organisation  @relation(fields: [organisationId], references: [id])
   invoiceItems   InvoiceItem[]
+  purchaseItems  PurchaseItem[]
+  stockMovements StockMovement[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -196,4 +208,93 @@ model InvoiceItem {
   taxAmount   Float
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Supplier {
+  id             String     @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  gstin          String?
+  email          String?
+  phone          String?
+  address        String?
+  city           String?
+  state          String?
+  pincode        String?
+  organisationId String     @db.ObjectId
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+  purchases      Purchase[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+model Purchase {
+  id                 String         @id @default(auto()) @map("_id") @db.ObjectId
+  purchaseNumber     String         @unique
+  supplierId         String         @db.ObjectId
+  supplier           Supplier       @relation(fields: [supplierId], references: [id])
+  purchaseDate       DateTime
+  dueDate            DateTime?
+  billNumber         String?
+  placeOfSupply      String?
+  reverseCharge      Boolean        @default(false)
+  
+  // Amounts
+  subtotal           Float
+  cgst               Float          @default(0)
+  sgst               Float          @default(0)
+  igst               Float          @default(0)
+  cess               Float          @default(0)
+  roundOff           Float          @default(0)
+  otherCharges       Float          @default(0)
+  totalTax           Float
+  total              Float
+  
+  // Payment
+  paymentStatus      String         @default("UNPAID")
+  paymentMethod      String?
+  paidAmount         Float          @default(0)
+  balanceAmount      Float?
+  
+  notes              String?
+  status             String         @default("DRAFT")
+  organisationId     String         @db.ObjectId
+  organisation       Organisation   @relation(fields: [organisationId], references: [id])
+  items              PurchaseItem[]
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+}
+
+model PurchaseItem {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  purchaseId  String   @db.ObjectId
+  purchase    Purchase @relation(fields: [purchaseId], references: [id])
+  productId   String   @db.ObjectId
+  product     Product  @relation(fields: [productId], references: [id])
+  description String
+  hsnSac      String?
+  quantity    Float
+  unit        String
+  rate        Float
+  discount    Float    @default(0)
+  taxRate     Float
+  cgst        Float    @default(0)
+  sgst        Float    @default(0)
+  igst        Float    @default(0)
+  amount      Float
+  taxAmount   Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model StockMovement {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  productId      String   @db.ObjectId
+  product        Product  @relation(fields: [productId], references: [id])
+  type           String   // IN | OUT | ADJUSTMENT
+  quantity       Float
+  reference      String?  // Invoice/Purchase number
+  referenceId    String?  // Invoice/Purchase ID
+  notes          String?
+  balanceAfter   Float
+  createdAt      DateTime @default(now())
 }

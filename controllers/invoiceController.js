@@ -146,7 +146,8 @@ exports.createInvoice = async (req, res) => {
 
     const calculatedTotal = calculatedSubtotal + calculatedTotalTax + (deliveryCharges || 0) + (packingCharges || 0) + (otherCharges || 0);
 
-    const invoice = await prisma.invoice.create({
+    const invoice = await prisma.$transaction(async (tx) => {
+      const newInvoice = await tx.invoice.create({
       data: {
         invoiceNumber,
         invoiceType: invoiceType || 'TAX_INVOICE',
@@ -198,6 +199,40 @@ exports.createInvoice = async (req, res) => {
         customer: true
       }
     });
+
+    // Deduct stock for each item
+    for (const item of validatedItems) {
+      const product = await tx.product.findUnique({ where: { id: item.productId } });
+      const newStock = product.stock - item.quantity;
+
+      if (newStock < 0) {
+        throw new Error(`Insufficient stock for product: ${product.name}. Available: ${product.stock}, Required: ${item.quantity}`);
+      }
+
+      await tx.product.update({
+        where: { id: item.productId },
+        data: { 
+          stock: newStock,
+          totalSold: product.totalSold + item.quantity
+        }
+      });
+
+      // Create stock movement
+      await tx.stockMovement.create({
+        data: {
+          productId: item.productId,
+          type: 'OUT',
+          quantity: item.quantity,
+          reference: invoiceNumber,
+          referenceId: newInvoice.id,
+          notes: `Sale to ${customer.name}`,
+          balanceAfter: newStock
+        }
+      });
+    }
+
+    return newInvoice;
+  });
 
     res.json({ success: true, data: invoice });
   } catch (error) {
