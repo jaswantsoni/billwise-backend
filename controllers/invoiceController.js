@@ -9,15 +9,32 @@ exports.createInvoice = async (req, res) => {
       invoiceDate,
       dueDate,
       items,
-      subtotal,
-      totalTax,
-      total,
       notes,
       placeOfSupply,
       reverseCharge,
+      invoiceType,
       invoiceCopyType,
       termsConditions,
-      declaration
+      declaration,
+      paymentInstructions,
+      deliveryInstructions,
+      returnPolicy,
+      lateFeePolicy,
+      warrantyInfo,
+      supportContact,
+      modeOfDelivery,
+      vehicleNumber,
+      transportName,
+      lrNumber,
+      ewayBillNumber,
+      placeOfDelivery,
+      deliveryDate,
+      freightTerms,
+      paymentMethod,
+      paymentTerms,
+      deliveryCharges,
+      packingCharges,
+      otherCharges
     } = req.body;
 
     const organisations = await prisma.organisation.findMany({
@@ -127,11 +144,13 @@ exports.createInvoice = async (req, res) => {
       };
     }));
 
-    const calculatedTotal = calculatedSubtotal + calculatedTotalTax;
+    const calculatedTotal = calculatedSubtotal + calculatedTotalTax + (deliveryCharges || 0) + (packingCharges || 0) + (otherCharges || 0);
 
     const invoice = await prisma.invoice.create({
       data: {
         invoiceNumber,
+        invoiceType: invoiceType || 'TAX_INVOICE',
+        invoiceCopyType: invoiceCopyType || 'ORIGINAL',
         customerId,
         billingAddressId,
         shippingAddressId,
@@ -139,16 +158,35 @@ exports.createInvoice = async (req, res) => {
         dueDate: new Date(dueDate),
         placeOfSupply: placeOfSupply || billState,
         reverseCharge: reverseCharge || false,
-        invoiceCopyType: invoiceCopyType || 'ORIGINAL',
         subtotal: calculatedSubtotal,
         cgst: totalCGST,
         sgst: totalSGST,
         igst: totalIGST,
+        deliveryCharges: deliveryCharges || 0,
+        packingCharges: packingCharges || 0,
+        otherCharges: otherCharges || 0,
         totalTax: calculatedTotalTax,
         total: calculatedTotal,
+        balanceAmount: calculatedTotal,
         notes,
         termsConditions,
         declaration,
+        paymentInstructions,
+        deliveryInstructions,
+        returnPolicy,
+        lateFeePolicy,
+        warrantyInfo,
+        supportContact,
+        modeOfDelivery: modeOfDelivery || 'IN_HAND',
+        vehicleNumber,
+        transportName,
+        lrNumber,
+        ewayBillNumber,
+        placeOfDelivery,
+        deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
+        freightTerms: freightTerms || 'PAID',
+        paymentMethod,
+        paymentTerms: paymentTerms || 'NET_30',
         status: 'DRAFT',
         organisationId,
         items: {

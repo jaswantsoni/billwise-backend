@@ -1,6 +1,8 @@
 const puppeteer = require('puppeteer');
 const prisma = require('../config/prisma');
 const { toWords } = require('number-to-words');
+const QRCode = require('qrcode');
+const { PDFDocument } = require('pdf-lib');
 
 const STATE_CODES = {
   'Andhra Pradesh': '37', 'Arunachal Pradesh': '12', 'Assam': '18', 'Bihar': '10',
@@ -22,10 +24,21 @@ const amountToWords = (amount) => {
   return words + ' Only';
 };
 
-const generateInvoiceHTML = (invoice, organisation, billingAddress, shippingAddress) => {
+const generateInvoiceHTML = async (invoice, organisation, billingAddress, shippingAddress) => {
   const orgState = organisation.state || '';
   const billState = billingAddress?.state || '';
   const isInterstate = orgState && billState && orgState !== billState;
+  
+  // Generate UPI QR Code
+  let qrCodeDataUrl = '';
+  if (organisation.upi) {
+    const upiString = `upi://pay?pa=${organisation.upi}&pn=${encodeURIComponent(organisation.name)}&am=${invoice.total.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Invoice ' + invoice.invoiceNumber)}`;
+    try {
+      qrCodeDataUrl = await QRCode.toDataURL(upiString, { width: 150, margin: 1 });
+    } catch (err) {
+      console.error('QR Code generation error:', err);
+    }
+  }
   
   const itemRows = invoice.items.map((item, idx) => `
     <tr>
@@ -106,7 +119,7 @@ const generateInvoiceHTML = (invoice, organisation, billingAddress, shippingAddr
         </div>
         
         <div class="tax-invoice">TAX INVOICE</div>
-        <div class="copy-type">${invoice.invoiceCopyType} FOR ${invoice.customer.gstin ? 'RECIPIENT' : 'BUYER'}</div>
+        <div class="copy-type">${invoice.invoiceCopyType}</div>
         
         <div class="meta-section">
           <div class="meta-row">
@@ -180,7 +193,9 @@ const generateInvoiceHTML = (invoice, organisation, billingAddress, shippingAddr
         <div class="summary-section">
           <div class="summary-row">
             <div class="summary-left">
-              <div class="amount-words">Amount in Words:</div>
+              <div class="amount-words">Taxable Amount in Words:</div>
+              <div style="font-size: 9pt; margin-bottom: 8px;">${amountToWords(invoice.subtotal)}</div>
+              <div class="amount-words">Total Amount in Words:</div>
               <div style="font-size: 9pt;">${invoice.amountInWords || amountToWords(invoice.total)}</div>
             </div>
             <div class="summary-right">
@@ -197,11 +212,22 @@ const generateInvoiceHTML = (invoice, organisation, billingAddress, shippingAddr
         
         ${organisation.bankName ? `
         <div class="bank-section">
-          <div class="bank-title">Bank Details</div>
-          <div class="bank-detail"><strong>Bank:</strong> ${organisation.bankName}${organisation.branch ? ', ' + organisation.branch : ''}</div>
-          ${organisation.accountNumber ? `<div class="bank-detail"><strong>A/c No:</strong> ${organisation.accountNumber}</div>` : ''}
-          ${organisation.ifsc ? `<div class="bank-detail"><strong>IFSC:</strong> ${organisation.ifsc}</div>` : ''}
-          ${organisation.upi ? `<div class="bank-detail"><strong>UPI:</strong> ${organisation.upi}</div>` : ''}
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="flex: 1;">
+              <div class="bank-title">Bank Details</div>
+              <div class="bank-detail"><strong>Bank:</strong> ${organisation.bankName}${organisation.branch ? ', ' + organisation.branch : ''}</div>
+              ${organisation.accountHolderName ? `<div class="bank-detail"><strong>A/c Holder:</strong> ${organisation.accountHolderName}</div>` : ''}
+              ${organisation.accountNumber ? `<div class="bank-detail"><strong>A/c No:</strong> ${organisation.accountNumber}</div>` : ''}
+              ${organisation.ifsc ? `<div class="bank-detail"><strong>IFSC:</strong> ${organisation.ifsc}</div>` : ''}
+              ${organisation.upi ? `<div class="bank-detail"><strong>UPI:</strong> ${organisation.upi}</div>` : ''}
+            </div>
+            ${qrCodeDataUrl ? `
+            <div style="text-align: center; padding-left: 10px;">
+              <div style="font-weight: bold; font-size: 9pt; margin-bottom: 4px;">Scan to Pay</div>
+              <img src="${qrCodeDataUrl}" style="width: 120px; height: 120px; border: 1px solid #ddd;" />
+            </div>
+            ` : ''}
+          </div>
         </div>
         ` : ''}
         
@@ -260,29 +286,49 @@ exports.generateInvoicePDF = async (req, res) => {
       });
     }
 
-    const html = generateInvoiceHTML(invoice, organisation, billingAddress, shippingAddress);
-
     browser = await puppeteer.launch({ 
       headless: true, 
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] 
     });
     const page = await browser.newPage();
-    
-    await page.setContent(html, { waitUntil: 'domcontentloaded' });
-    
-    const pdf = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' }
-    });
+
+    // Generate all 3 copies
+    const copies = ['ORIGINAL FOR BUYER', 'DUPLICATE FOR TRANSPORTER', 'TRIPLICATE FOR SUPPLIER'];
+    const pdfBuffers = [];
+
+    for (const copyType of copies) {
+      const modifiedInvoice = { ...invoice, invoiceCopyType: copyType };
+      const html = await generateInvoiceHTML(modifiedInvoice, organisation, billingAddress, shippingAddress);
+      
+      await page.setContent(html, { waitUntil: 'domcontentloaded' });
+      
+      const pdf = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' }
+      });
+      
+      pdfBuffers.push(pdf);
+    }
     
     await browser.close();
     browser = null;
+
+    // Merge all PDFs
+    const mergedPdf = await PDFDocument.create();
+    
+    for (const pdfBuffer of pdfBuffers) {
+      const pdf = await PDFDocument.load(pdfBuffer);
+      const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+      copiedPages.forEach((page) => mergedPdf.addPage(page));
+    }
+    
+    const mergedPdfBytes = await mergedPdf.save();
     
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Length', pdf.length);
+    res.setHeader('Content-Length', mergedPdfBytes.length);
     res.setHeader('Content-Disposition', `inline; filename="Invoice-${invoice.invoiceNumber}.pdf"`);
-    res.end(pdf, 'binary');
+    res.end(Buffer.from(mergedPdfBytes), 'binary');
   } catch (error) {
     if (browser) await browser.close();
     console.error('PDF Generation Error:', error);

@@ -2,15 +2,53 @@ const prisma = require('../config/prisma');
 
 exports.createOrganisation = async (req, res) => {
   try {
-    const { name, gstin, address, phone, email } = req.body;
+    const { 
+      name, 
+      tradeName,
+      gstin, 
+      pan,
+      address, 
+      city,
+      state,
+      stateCode,
+      pincode,
+      phone, 
+      email,
+      logo,
+      bankName,
+      branch,
+      accountHolderName,
+      accountNumber,
+      ifsc,
+      upi,
+      authorizedSignatory,
+      signatureUrl,
+      companySealUrl
+    } = req.body;
 
     const organisation = await prisma.organisation.create({
       data: {
         name,
+        tradeName,
         gstin,
+        pan,
         address,
+        city,
+        state,
+        stateCode,
+        pincode,
         phone,
         email,
+        logo,
+        bankName,
+        branch,
+        accountHolderName,
+        accountNumber,
+        ifsc,
+        upi,
+        authorizedSignatory,
+        signatureUrl,
+        companySealUrl,
         userId: req.userId
       }
     });

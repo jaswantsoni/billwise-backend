@@ -36,6 +36,16 @@ const { authenticate } = require('../middleware/auth');
  *               dueDate:
  *                 type: string
  *                 format: date
+ *               invoiceType:
+ *                 type: string
+ *                 enum: [TAX_INVOICE, BILL_OF_SUPPLY, PROFORMA]
+ *               invoiceCopyType:
+ *                 type: string
+ *                 enum: [ORIGINAL, DUPLICATE, TRIPLICATE]
+ *               placeOfSupply:
+ *                 type: string
+ *               reverseCharge:
+ *                 type: boolean
  *               items:
  *                 type: array
  *                 items:
@@ -45,13 +55,66 @@ const { authenticate } = require('../middleware/auth');
  *                       type: string
  *                     description:
  *                       type: string
+ *                     hsnSac:
+ *                       type: string
  *                     quantity:
  *                       type: number
+ *                     unit:
+ *                       type: string
  *                     rate:
+ *                       type: number
+ *                     discount:
  *                       type: number
  *                     taxRate:
  *                       type: number
+ *               deliveryCharges:
+ *                 type: number
+ *               packingCharges:
+ *                 type: number
+ *               otherCharges:
+ *                 type: number
+ *               modeOfDelivery:
+ *                 type: string
+ *                 enum: [IN_HAND, COURIER, TRANSPORT, SELF_PICKUP]
+ *               vehicleNumber:
+ *                 type: string
+ *               transportName:
+ *                 type: string
+ *               lrNumber:
+ *                 type: string
+ *               ewayBillNumber:
+ *                 type: string
+ *               placeOfDelivery:
+ *                 type: string
+ *               deliveryDate:
+ *                 type: string
+ *                 format: date
+ *               freightTerms:
+ *                 type: string
+ *                 enum: [PAID, TO_PAY]
+ *               paymentMethod:
+ *                 type: string
+ *                 enum: [CASH, UPI, NEFT, CHEQUE, CARD]
+ *               paymentTerms:
+ *                 type: string
+ *                 enum: [NET_15, NET_30, NET_45, NET_60, IMMEDIATE]
  *               notes:
+ *                 type: string
+ *               termsConditions:
+ *                 type: string
+ *               declaration:
+ *                 type: string
+ *               paymentInstructions:
+ *                 type: string
+ *               deliveryInstructions:
+ *                 type: string
+ *               returnPolicy:
+ *                 type: string
+ *               lateFeePolicy:
+ *                 type: string
+ *               warrantyInfo:
+ *                 type: string
+ *               supportContact:
  *                 type: string
  *     responses:
  *       200:

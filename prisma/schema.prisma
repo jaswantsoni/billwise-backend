@@ -19,29 +19,39 @@ model User {
 }
 
 model Organisation {
-  id        String     @id @default(auto()) @map("_id") @db.ObjectId
-  name      String
-  gstin     String?    @unique
-  pan       String?
-  address   String
-  city      String?
-  state     String?
-  stateCode String?
-  pincode   String?
-  phone     String
-  email     String
-  logo      String?
-  bankName  String?
-  accountNumber String?
-  ifsc      String?
-  branch    String?
-  upi       String?
-  userId    String     @db.ObjectId
-  user      User       @relation(fields: [userId], references: [id])
-  customers Customer[]
-  products  Product[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id                String     @id @default(auto()) @map("_id") @db.ObjectId
+  name              String
+  tradeName         String?
+  gstin             String?    @unique
+  pan               String?
+  address           String
+  city              String?
+  state             String?
+  stateCode         String?
+  pincode           String?
+  phone             String
+  email             String
+  logo              String?
+  
+  // Bank Details
+  bankName          String?
+  branch            String?
+  accountHolderName String?
+  accountNumber     String?
+  ifsc              String?
+  upi               String?
+  
+  // Legal
+  authorizedSignatory String?
+  signatureUrl      String?
+  companySealUrl    String?
+  
+  userId            String     @db.ObjectId
+  user              User       @relation(fields: [userId], references: [id])
+  customers         Customer[]
+  products          Product[]
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
 }
 
 model Customer {
@@ -98,6 +108,8 @@ model Product {
 model Invoice {
   id                 String        @id @default(auto()) @map("_id") @db.ObjectId
   invoiceNumber      String        @unique
+  invoiceType        String        @default("TAX_INVOICE")
+  invoiceCopyType    String        @default("ORIGINAL")
   customerId         String        @db.ObjectId
   customer           Customer      @relation(fields: [customerId], references: [id])
   billingAddressId   String?       @db.ObjectId
@@ -106,23 +118,59 @@ model Invoice {
   dueDate            DateTime
   placeOfSupply      String?
   reverseCharge      Boolean       @default(false)
-  invoiceCopyType    String        @default("ORIGINAL")
+  
+  // Amounts
   subtotal           Float
   cgst               Float         @default(0)
   sgst               Float         @default(0)
   igst               Float         @default(0)
   cess               Float         @default(0)
   roundOff           Float         @default(0)
+  deliveryCharges    Float         @default(0)
+  packingCharges     Float         @default(0)
+  otherCharges       Float         @default(0)
   totalTax           Float
   total              Float
   amountInWords      String?
+  
+  // Delivery & Transport
+  modeOfDelivery     String?       @default("IN_HAND")
+  vehicleNumber      String?
+  transportName      String?
+  lrNumber           String?
+  ewayBillNumber     String?
+  placeOfDelivery    String?
+  deliveryDate       DateTime?
+  freightTerms       String?       @default("PAID")
+  
+  // Payment
+  paymentStatus      String        @default("UNPAID")
+  paymentMethod      String?
+  paymentTerms       String?       @default("NET_30")
+  paidAmount         Float         @default(0)
+  balanceAmount      Float?
+  referenceNumber    String?
+  
+  // Notes & Terms
   notes              String?
   termsConditions    String?
+  paymentInstructions String?
+  deliveryInstructions String?
+  returnPolicy       String?
+  lateFeePolicy      String?
+  warrantyInfo       String?
+  supportContact     String?
   declaration        String?
+  
+  // Legal & Compliance
+  irn                String?
+  ackNumber          String?
+  ackDate            DateTime?
+  qrCodeData         String?
+  
+  // System
   status             String        @default("DRAFT")
   organisationId     String        @db.ObjectId
-  htmlTemplate       String?
-  cssTemplate        String?
   items              InvoiceItem[]
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
