@@ -33,11 +33,15 @@ const generateInvoiceHTML = async (invoice, organisation, billingAddress, shippi
   let qrCodeDataUrl = '';
   if (organisation.upi) {
     const upiString = `upi://pay?pa=${organisation.upi}&pn=${encodeURIComponent(organisation.name)}&am=${invoice.total.toFixed(2)}&cu=INR&tn=${encodeURIComponent('Invoice ' + invoice.invoiceNumber)}`;
+    console.log('Generating QR for UPI:', upiString);
     try {
       qrCodeDataUrl = await QRCode.toDataURL(upiString, { width: 150, margin: 1 });
+      console.log('QR Code generated successfully, length:', qrCodeDataUrl.length);
     } catch (err) {
       console.error('QR Code generation error:', err);
     }
+  } else {
+    console.log('No UPI ID found for organisation:', organisation.name);
   }
   
   const itemRows = invoice.items.map((item, idx) => `
@@ -137,9 +141,45 @@ const generateInvoiceHTML = async (invoice, organisation, billingAddress, shippi
           <div class="meta-row">
             <div class="meta-cell meta-label">Reverse Charge:</div>
             <div class="meta-cell">${invoice.reverseCharge ? 'Yes' : 'No'}</div>
-            <div class="meta-cell meta-label">State:</div>
-            <div class="meta-cell">${orgState} ${orgState && STATE_CODES[orgState] ? '(' + STATE_CODES[orgState] + ')' : ''}</div>
+            <div class="meta-cell meta-label">Payment Terms:</div>
+            <div class="meta-cell">${invoice.paymentTerms || 'NET_30'}</div>
           </div>
+          ${invoice.vehicleNumber || invoice.transportName || invoice.ewayBillNumber ? `
+          <div class="meta-row">
+            ${invoice.vehicleNumber ? `
+              <div class="meta-cell meta-label">Vehicle No:</div>
+              <div class="meta-cell">${invoice.vehicleNumber}</div>
+            ` : '<div class="meta-cell meta-label"></div><div class="meta-cell"></div>'}
+            ${invoice.ewayBillNumber ? `
+              <div class="meta-cell meta-label">E-Way Bill:</div>
+              <div class="meta-cell">${invoice.ewayBillNumber}</div>
+            ` : '<div class="meta-cell meta-label"></div><div class="meta-cell"></div>'}
+          </div>
+          ` : ''}
+          ${invoice.transportName || invoice.lrNumber ? `
+          <div class="meta-row">
+            ${invoice.transportName ? `
+              <div class="meta-cell meta-label">Transport:</div>
+              <div class="meta-cell">${invoice.transportName}</div>
+            ` : '<div class="meta-cell meta-label"></div><div class="meta-cell"></div>'}
+            ${invoice.lrNumber ? `
+              <div class="meta-cell meta-label">LR No:</div>
+              <div class="meta-cell">${invoice.lrNumber}</div>
+            ` : '<div class="meta-cell meta-label"></div><div class="meta-cell"></div>'}
+          </div>
+          ` : ''}
+          ${invoice.modeOfDelivery || invoice.placeOfDelivery ? `
+          <div class="meta-row">
+            ${invoice.modeOfDelivery ? `
+              <div class="meta-cell meta-label">Mode of Delivery:</div>
+              <div class="meta-cell">${invoice.modeOfDelivery}</div>
+            ` : '<div class="meta-cell meta-label"></div><div class="meta-cell"></div>'}
+            ${invoice.placeOfDelivery ? `
+              <div class="meta-cell meta-label">Place of Delivery:</div>
+              <div class="meta-cell">${invoice.placeOfDelivery}</div>
+            ` : '<div class="meta-cell meta-label"></div><div class="meta-cell"></div>'}
+          </div>
+          ` : ''}
         </div>
         
         <div class="party-section">
@@ -204,6 +244,9 @@ const generateInvoiceHTML = async (invoice, organisation, billingAddress, shippi
               ${!isInterstate && invoice.sgst > 0 ? `<div class="summary-line"><span>SGST:</span><span>₹${invoice.sgst.toFixed(2)}</span></div>` : ''}
               ${isInterstate && invoice.igst > 0 ? `<div class="summary-line"><span>IGST:</span><span>₹${invoice.igst.toFixed(2)}</span></div>` : ''}
               ${invoice.cess > 0 ? `<div class="summary-line"><span>CESS:</span><span>₹${invoice.cess.toFixed(2)}</span></div>` : ''}
+              ${invoice.deliveryCharges > 0 ? `<div class="summary-line"><span>Delivery Charges:</span><span>₹${invoice.deliveryCharges.toFixed(2)}</span></div>` : ''}
+              ${invoice.packingCharges > 0 ? `<div class="summary-line"><span>Packing Charges:</span><span>₹${invoice.packingCharges.toFixed(2)}</span></div>` : ''}
+              ${invoice.otherCharges > 0 ? `<div class="summary-line"><span>Other Charges:</span><span>₹${invoice.otherCharges.toFixed(2)}</span></div>` : ''}
               ${invoice.roundOff !== 0 ? `<div class="summary-line"><span>Round Off:</span><span>₹${invoice.roundOff.toFixed(2)}</span></div>` : ''}
               <div class="summary-line total"><span>Grand Total:</span><span>₹${invoice.total.toFixed(2)}</span></div>
             </div>
@@ -234,6 +277,12 @@ const generateInvoiceHTML = async (invoice, organisation, billingAddress, shippi
         <div class="footer-section">
           ${invoice.notes ? `<div class="footer-title">Notes:</div><div class="footer-text">${invoice.notes}</div>` : ''}
           ${invoice.termsConditions ? `<div class="footer-title" style="margin-top: 6px;">Terms & Conditions:</div><div class="footer-text">${invoice.termsConditions}</div>` : ''}
+          ${invoice.paymentInstructions ? `<div class="footer-title" style="margin-top: 6px;">Payment Instructions:</div><div class="footer-text">${invoice.paymentInstructions}</div>` : ''}
+          ${invoice.deliveryInstructions ? `<div class="footer-title" style="margin-top: 6px;">Delivery Instructions:</div><div class="footer-text">${invoice.deliveryInstructions}</div>` : ''}
+          ${invoice.returnPolicy ? `<div class="footer-title" style="margin-top: 6px;">Return Policy:</div><div class="footer-text">${invoice.returnPolicy}</div>` : ''}
+          ${invoice.lateFeePolicy ? `<div class="footer-title" style="margin-top: 6px;">Late Fee Policy:</div><div class="footer-text">${invoice.lateFeePolicy}</div>` : ''}
+          ${invoice.warrantyInfo ? `<div class="footer-title" style="margin-top: 6px;">Warranty:</div><div class="footer-text">${invoice.warrantyInfo}</div>` : ''}
+          ${invoice.supportContact ? `<div class="footer-title" style="margin-top: 6px;">Support Contact:</div><div class="footer-text">${invoice.supportContact}</div>` : ''}
           ${invoice.declaration ? `<div class="footer-title" style="margin-top: 6px;">Declaration:</div><div class="footer-text">${invoice.declaration}</div>` : ''}
           <div class="signature">
             <div>For ${organisation.name}</div>
