@@ -9,7 +9,8 @@ build:
     build:
       - echo "Build completed"
 run:
-  command: node server.js
+  runtime-version: nodejs22
+  command: sh -c "yum install -y nss nspr atk at-spi2-atk cups-libs libdrm libXcomposite libXdamage libXrandr libgbm alsa-lib pango gtk3 && node server.js"
   network:
     port: 8080
   env:
