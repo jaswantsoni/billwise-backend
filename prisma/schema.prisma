@@ -107,7 +107,7 @@ model Product {
 
 model Invoice {
   id                 String        @id @default(auto()) @map("_id") @db.ObjectId
-  invoiceNumber      String        @unique
+  invoiceNumber      String        
   invoiceType        String        @default("TAX_INVOICE")
   invoiceCopyType    String        @default("ORIGINAL")
   customerId         String        @db.ObjectId
@@ -196,4 +196,18 @@ model InvoiceItem {
   taxAmount   Float
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model HSNCode {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  hsnCode       String   @unique
+  type          String
+  description   String
+  gstRate       String?
+  effectiveDate String?
+  chapterName   String?
+  chapterNumber String?
+  taxDetails    Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

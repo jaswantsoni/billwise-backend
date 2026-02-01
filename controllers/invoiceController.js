@@ -207,6 +207,7 @@ exports.createInvoice = async (req, res) => {
 };
 
 exports.getInvoices = async (req, res) => {
+  let organisationId =  req.query.organisationId;
   try {
     const organisations = await prisma.organisation.findMany({
       where: { userId: req.userId },
@@ -218,7 +219,7 @@ exports.getInvoices = async (req, res) => {
     }
 
     const invoices = await prisma.invoice.findMany({
-      where: { organisationId: organisations[0].id },
+      where: { organisationId: organisationId??organisations[0].id },
       include: {
         items: true,
         customer: true

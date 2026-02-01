@@ -73,3 +73,19 @@ exports.getOrganisations = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch organisations' });
   }
 };
+
+exports.updateOrganisation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    const organisation = await prisma.organisation.update({
+      where: { id },
+      data: updateData
+    });
+
+    res.json({ success: true, data: organisation });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update organisation' });
+  }
+};

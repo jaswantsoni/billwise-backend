@@ -85,4 +85,77 @@ router.post('/', authenticate, organisationController.createOrganisation);
  */
 router.get('/', authenticate, organisationController.getOrganisations);
 
+/**
+ * @swagger 
+ * /api/organisations/{id}:
+ *   put:
+ *     summary: Update an organisation
+ *     tags: [Organisations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Organisation ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               tradeName:
+ *                 type: string
+ *               gstin:
+ *                 type: string
+ *               pan:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *               city:
+ *                 type: string
+ *               state:
+ *                 type: string
+ *               stateCode:
+ *                 type: string
+ *               pincode:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               logo:
+ *                 type: string
+ *               bankName:
+ *                 type: string
+ *               branch:
+ *                 type: string
+ *               accountHolderName:
+ *                 type: string
+ *               accountNumber:
+ *                 type: string
+ *               ifsc:
+ *                 type: string
+ *               upi:
+ *                 type: string
+ *               authorizedSignatory:
+ *                 type: string
+ *               signatureUrl:
+ *                 type: string
+ *               companySealUrl:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Organisation updated successfully
+ * 
+ */
+
+router.put('/:id', authenticate, organisationController.updateOrganisation);
+
+
 module.exports = router;
