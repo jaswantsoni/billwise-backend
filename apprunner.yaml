@@ -1,16 +1,9 @@
 version: 1.0
-runtime: nodejs22
+runtime: docker
 build:
-  commands:
-    pre-build:
-      - yum install -y nss nspr atk at-spi2-atk cups-libs libdrm libXcomposite libXdamage libXrandr libgbm alsa-lib pango gtk3
-      - npm install
-      - npx prisma generate
-    build:
-      - echo "Build completed"
+  dockerfile: Dockerfile
 run:
-  runtime-version: nodejs22
-  command: sh -c "yum install -y nss nspr atk at-spi2-atk cups-libs libdrm libXcomposite libXdamage libXrandr libgbm alsa-lib pango gtk3 && node server.js"
+  command: node server.js
   network:
     port: 8080
   env:
