@@ -13,6 +13,7 @@ const customerRoutes = require('./routes/customer');
 const productRoutes = require('./routes/product');
 const addressRoutes = require('./routes/address');
 const invoiceRoutes = require('./routes/invoice');
+const pdfController = require('./controllers/pdfController');
 
 const hsnRoutes = require('./routes/hsn');
 
@@ -49,6 +50,8 @@ app.use('/api/products', productRoutes);
 app.use('/api/addresses', addressRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/hsn', hsnRoutes);
+
+app.get('/public/invoice/:id/:signature', pdfController.getInvoicePDFPublic);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

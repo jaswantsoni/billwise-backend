@@ -1,443 +1,566 @@
-# Frontend Integration Guide - Invoice Backend API
+# Frontend Integration Guide
 
 ## Base URL
 ```
 Development: http://localhost:3000
-Production: https://your-app-runner-url.com
+Production: https://your-apprunner-url.com
 ```
 
 ## Authentication
-All protected endpoints require JWT token in Authorization header:
-```
-Authorization: Bearer <your_jwt_token>
-```
 
----
-
-## 1. ORGANISATION API
-
-### Create Organisation
-```http
-POST /api/organisations
-```
-
-**Request Body:**
-```json
-{
-  "name": "ABC Industries Pvt Ltd",
-  "tradeName": "ABC Industries",
-  "gstin": "27AABCU9603R1ZM",
-  "pan": "AABCU9603R",
-  "address": "123 Industrial Area",
-  "city": "Mumbai",
-  "state": "Maharashtra",
-  "stateCode": "27",
-  "pincode": "400001",
-  "phone": "9876543210",
-  "email": "info@abc.com",
-  "logo": "https://example.com/logo.png",
-  
-  // Bank Details
-  "bankName": "HDFC Bank",
-  "branch": "Andheri West",
-  "accountHolderName": "ABC Industries Pvt Ltd",
-  "accountNumber": "50200012345678",
-  "ifsc": "HDFC0001234",
-  "upi": "abc@hdfcbank",
-  
-  // Legal
-  "authorizedSignatory": "John Doe",
-  "signatureUrl": "https://example.com/signature.png",
-  "companySealUrl": "https://example.com/seal.png"
+### Register
+```javascript
+POST /auth/register
+Body: {
+  name: "John Doe",
+  email: "john@example.com",
+  password: "password123"
+}
+Response: {
+  success: true,
+  token: "jwt-token-here",
+  user: { id, name, email }
 }
 ```
 
-**Required Fields:** name, address, phone, email
-
----
-
-## 2. INVOICE API
-
-### Create Invoice
-```http
-POST /api/invoices
-```
-
-**Request Body:**
-```json
-{
-  // Basic Info
-  "customerId": "697cdd0a348b55d8de670df3",
-  "billingAddressId": "697cdd0a348b55d8de670df4",
-  "shippingAddressId": "697cead79da801502f4842e9",
-  "invoiceDate": "2024-01-31",
-  "dueDate": "2024-02-28",
-  
-  // Invoice Type
-  "invoiceType": "TAX_INVOICE",  // TAX_INVOICE | BILL_OF_SUPPLY | PROFORMA
-  "invoiceCopyType": "ORIGINAL",  // ORIGINAL | DUPLICATE | TRIPLICATE
-  
-  // GST Details
-  "placeOfSupply": "Maharashtra",
-  "reverseCharge": false,
-  
-  // Line Items
-  "items": [
-    {
-      "productId": "697ce29267d6d8db692a97ee",
-      "description": "Product Name",
-      "hsnSac": "1234",
-      "quantity": 10,
-      "unit": "PCS",
-      "rate": 100,
-      "discount": 0,
-      "taxRate": 18
-    }
-  ],
-  
-  // Additional Charges
-  "deliveryCharges": 100,
-  "packingCharges": 50,
-  "otherCharges": 0,
-  
-  // Delivery & Transport
-  "modeOfDelivery": "COURIER",  // IN_HAND | COURIER | TRANSPORT | SELF_PICKUP
-  "vehicleNumber": "MH01AB1234",
-  "transportName": "Blue Dart",
-  "lrNumber": "BD123456",
-  "ewayBillNumber": "123456789012",
-  "placeOfDelivery": "Mumbai",
-  "deliveryDate": "2024-02-05",
-  "freightTerms": "PAID",  // PAID | TO_PAY
-  
-  // Payment
-  "paymentMethod": "UPI",  // CASH | UPI | NEFT | CHEQUE | CARD
-  "paymentTerms": "NET_30",  // NET_15 | NET_30 | NET_45 | NET_60 | IMMEDIATE
-  
-  // Notes & Instructions
-  "notes": "Thank you for your business",
-  "termsConditions": "Payment due within 30 days",
-  "declaration": "We declare that this invoice shows actual price",
-  "paymentInstructions": "Pay via UPI or bank transfer",
-  "deliveryInstructions": "Handle with care",
-  "returnPolicy": "No returns after 7 days",
-  "lateFeePolicy": "2% per month on overdue amount",
-  "warrantyInfo": "1 year manufacturer warranty",
-  "supportContact": "support@abc.com"
+### Login
+```javascript
+POST /auth/login
+Body: {
+  email: "john@example.com",
+  password: "password123"
+}
+Response: {
+  success: true,
+  token: "jwt-token-here",
+  user: { id, name, email }
 }
 ```
 
-**Required Fields:** customerId, invoiceDate, dueDate, items
+### Google OAuth
+```javascript
+// Redirect user to:
+GET /auth/google
 
-**Auto-Calculated Fields:**
-- invoiceNumber (INV-2024-001)
-- subtotal
-- cgst/sgst (intrastate) OR igst (interstate)
-- totalTax
-- total
-- amountInWords
-- balanceAmount
+// Callback will redirect to frontend with token:
+// http://localhost:8080?token=jwt-token-here
+```
+
+## Headers for Protected Routes
+```javascript
+headers: {
+  'Authorization': 'Bearer YOUR_JWT_TOKEN',
+  'Content-Type': 'application/json'
+}
+```
 
 ---
 
-## 3. INVOICE RESPONSE
+## GST Verification
 
-### Get Invoice
-```http
-GET /api/invoices/:id
-```
+### Get GST Details (with DB cache)
+```javascript
+GET /api/gst/:gstin
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": "697cf0e5e0e8e0e8e0e8e0e8",
-    "invoiceNumber": "INV-2024-001",
-    "invoiceType": "TAX_INVOICE",
-    "invoiceCopyType": "ORIGINAL",
-    "invoiceDate": "2024-01-31T00:00:00.000Z",
-    "dueDate": "2024-02-28T00:00:00.000Z",
-    
-    // Amounts
-    "subtotal": 1000,
-    "cgst": 90,
-    "sgst": 90,
-    "igst": 0,
-    "deliveryCharges": 100,
-    "packingCharges": 50,
-    "totalTax": 180,
-    "total": 1330,
-    "amountInWords": "One Thousand Three Hundred Thirty Rupees Only",
-    
-    // Payment
-    "paymentStatus": "UNPAID",
-    "paidAmount": 0,
-    "balanceAmount": 1330,
-    
-    // Customer
-    "customer": {
-      "id": "697cdd0a348b55d8de670df3",
-      "name": "Customer Name",
-      "gstin": "27AABCU9603R1ZM",
-      "phone": "9876543210"
+Response: {
+  success: true,
+  source: "database" | "api",  // Shows if from cache or API
+  data: {
+    data: { gstin, lgnm, tradeNam, pradr: {...} },
+    mappedAddress: {
+      line1: "Building name",
+      line2: "Street",
+      city: "City",
+      district: "District",
+      state: "State",
+      pincode: "121004"
     },
-    
-    // Items
-    "items": [
+    mappedOrganisation: {
+      name: "Company Name",
+      tradeName: "Trade Name",
+      gstin: "GSTIN",
+      pan: "PAN",
+      address: "Address",
+      city: "City",
+      state: "State",
+      stateCode: "06",
+      pincode: "121004"
+    }
+  }
+}
+```
+
+---
+
+## HSN/SAC Search
+
+### Search HSN Codes
+```javascript
+GET /api/hsn/search?query=lighting&page=1&size=20
+
+Response: {
+  success: true,
+  data: {
+    results: [
       {
-        "id": "item_id",
-        "description": "Product Name",
-        "hsnSac": "1234",
-        "quantity": 10,
-        "unit": "PCS",
-        "rate": 100,
-        "discount": 0,
-        "taxRate": 18,
-        "cgst": 90,
-        "sgst": 90,
-        "igst": 0,
-        "amount": 1000,
-        "taxAmount": 180
+        hsnCode: "9405",
+        type: "HSN",
+        description: "LAMPS AND LIGHTING FITTINGS...",
+        gstRate: "18",
+        effectiveDate: "15/11/2017",
+        chapterName: "Furniture; bedding...",
+        chapterNumber: "94",
+        allTaxDetails: [...]
       }
     ],
-    
-    "status": "DRAFT",
-    "createdAt": "2024-01-31T14:47:56.099Z"
+    totalResults: 20,
+    hasMore: true,
+    page: 1,
+    size: 20
   }
 }
 ```
 
 ---
 
-## 4. GENERATE PDF
+## Organisation
 
-### Get Invoice PDF
-```http
-GET /api/invoices/:id/pdf
+### Create Organisation
+```javascript
+POST /api/organisations
+Body: {
+  name: "My Company",
+  gstin: "06AAAAA0000A1Z5",
+  pan: "AAAAA0000A",
+  address: "123 Street",
+  city: "Delhi",
+  state: "Delhi",
+  pincode: "110001",
+  phone: "9876543210",
+  email: "company@example.com",
+  // Bank Details
+  bankName: "HDFC Bank",
+  accountNumber: "1234567890",
+  ifsc: "HDFC0001234",
+  upi: "company@paytm"
+}
 ```
 
-**Response:** PDF file (application/pdf)
-
-**Usage in Frontend:**
+### Get Organisations
 ```javascript
+GET /api/organisations
+
+Response: {
+  success: true,
+  data: [{ id, name, gstin, ... }]
+}
+```
+
+---
+
+## Customer
+
+### Create Customer
+```javascript
+POST /api/customers
+Body: {
+  name: "Customer Name",
+  gstin: "27AAAAA0000A1Z5",  // Optional
+  email: "customer@example.com",
+  phone: "9876543210"
+}
+```
+
+### Get Customers
+```javascript
+GET /api/customers
+
+Response: {
+  success: true,
+  data: [{ id, name, gstin, email, phone, addresses: [...] }]
+}
+```
+
+---
+
+## Address
+
+### Add Address
+```javascript
+POST /api/addresses
+Body: {
+  customerId: "customer-id",
+  type: "BILLING" | "SHIPPING",
+  line1: "Building name",
+  line2: "Street",
+  city: "City",
+  state: "State",
+  pincode: "121004",
+  isDefault: true,
+  isShipping: false
+}
+```
+
+---
+
+## Product
+
+### Create Product
+```javascript
+POST /api/products
+Body: {
+  name: "LED Bulb",
+  description: "9W LED Bulb",
+  sku: "LED-9W-001",
+  hsnCode: "8539",
+  unit: "PCS",
+  price: 150.00,
+  taxRate: 12
+}
+```
+
+### Get Products
+```javascript
+GET /api/products
+
+Response: {
+  success: true,
+  data: [{ id, name, sku, hsnCode, price, taxRate, ... }]
+}
+```
+
+---
+
+## Invoice
+
+### Create Invoice
+```javascript
+POST /api/invoices
+Body: {
+  customerId: "customer-id",
+  billingAddressId: "address-id",
+  shippingAddressId: "address-id",  // Optional
+  invoiceDate: "2026-01-01",
+  dueDate: "2026-01-31",
+  items: [
+    {
+      productId: "product-id",
+      description: "LED Bulb 9W",
+      hsnSac: "8539",
+      quantity: 10,
+      unit: "PCS",
+      rate: 150.00,
+      taxRate: 12,
+      discount: 0
+    }
+  ],
+  notes: "Thank you for your business",
+  termsConditions: "Payment within 30 days",
+  // Optional fields
+  deliveryCharges: 50,
+  packingCharges: 25,
+  vehicleNumber: "DL01AB1234",
+  transportName: "XYZ Transport"
+}
+
+Response: {
+  success: true,
+  data: {
+    id: "invoice-id",
+    invoiceNumber: "INV-2026-001",
+    subtotal: 1500,
+    cgst: 90,
+    sgst: 90,
+    igst: 0,
+    total: 1680,
+    ...
+  }
+}
+```
+
+### Get Invoices
+```javascript
+GET /api/invoices
+
+Response: {
+  success: true,
+  data: [{ id, invoiceNumber, customer, items, total, ... }]
+}
+```
+
+### Get Single Invoice
+```javascript
+GET /api/invoices/:id
+
+Response: {
+  success: true,
+  data: {
+    id, invoiceNumber, customer, items, total,
+    billingAddress, shippingAddress, ...
+  }
+}
+```
+
+### Download Invoice PDF
+```javascript
+GET /api/invoices/:id/pdf
+
+// Returns PDF file (4 copies merged)
+// Set responseType: 'blob' in axios
+
+// Example with axios:
+const response = await axios.get(
+  `${API_URL}/api/invoices/${invoiceId}/pdf`,
+  {
+    headers: { Authorization: `Bearer ${token}` },
+    responseType: 'blob',
+    timeout: 60000  // 60 seconds for PDF generation
+  }
+);
+
 // Download PDF
-const response = await fetch(`${API_URL}/api/invoices/${invoiceId}/pdf`, {
+const url = window.URL.createObjectURL(new Blob([response.data]));
+const link = document.createElement('a');
+link.href = url;
+link.download = `Invoice-${invoiceNumber}.pdf`;
+link.click();
+```
+
+---
+
+## Environment Variables for Frontend
+
+```env
+VITE_API_URL=http://localhost:3000
+VITE_GOOGLE_CLIENT_ID=your-google-client-id
+```
+
+---
+
+## Sample Frontend Code (React)
+
+### API Service
+```javascript
+// services/api.js
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+const api = axios.create({
+  baseURL: API_URL,
+  timeout: 30000,
   headers: {
-    'Authorization': `Bearer ${token}`
+    'Content-Type': 'application/json'
   }
 });
-const blob = await response.blob();
-const url = window.URL.createObjectURL(blob);
-const a = document.createElement('a');
-a.href = url;
-a.download = `Invoice-${invoiceNumber}.pdf`;
-a.click();
 
-// Or open in new tab
-window.open(`${API_URL}/api/invoices/${invoiceId}/pdf`, '_blank');
+// Add token to requests
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export default api;
 ```
 
----
-
-## 5. KEY FEATURES
-
-### Automatic Tax Calculation
-- **Intrastate (same state)**: CGST + SGST (50% each)
-- **Interstate (different states)**: IGST (100%)
-- Backend automatically detects based on organisation state vs billing address state
-
-### Invoice Numbering
-- Auto-generated: `INV-YYYY-###`
-- Sequential per year
-- Example: INV-2024-001, INV-2024-002
-
-### Amount in Words
-- Auto-converted to Indian format
-- Example: "One Thousand Two Hundred Thirty Rupees Only"
-
-### PDF Features
-- Professional GST-compliant layout
-- A4 print-optimized
-- Black & white safe
-- Includes all sections: header, items, tax summary, bank details, terms
-
----
-
-## 6. ENUMS & CONSTANTS
-
-### Invoice Type
-- `TAX_INVOICE` (default)
-- `BILL_OF_SUPPLY`
-- `PROFORMA`
-
-### Invoice Copy Type
-- `ORIGINAL` (default)
-- `DUPLICATE`
-- `TRIPLICATE`
-
-### Mode of Delivery
-- `IN_HAND` (default)
-- `COURIER`
-- `TRANSPORT`
-- `SELF_PICKUP`
-
-### Freight Terms
-- `PAID` (default)
-- `TO_PAY`
-
-### Payment Terms
-- `NET_15`
-- `NET_30` (default)
-- `NET_45`
-- `NET_60`
-- `IMMEDIATE`
-
-### Payment Method
-- `CASH`
-- `UPI`
-- `NEFT`
-- `CHEQUE`
-- `CARD`
-
-### Payment Status
-- `UNPAID` (default)
-- `PARTIALLY_PAID`
-- `PAID`
-- `OVERDUE`
-
-### Invoice Status
-- `DRAFT` (default)
-- `ISSUED`
-- `PAID`
-- `CANCELLED`
-
----
-
-## 7. STATE CODES (for GST)
-
+### Auth Hook
 ```javascript
-const STATE_CODES = {
-  'Andhra Pradesh': '37',
-  'Karnataka': '29',
-  'Kerala': '32',
-  'Tamil Nadu': '33',
-  'Telangana': '36',
-  'Goa': '30',
-  'Gujarat': '24',
-  'Maharashtra': '27',
-  'Rajasthan': '08',
-  'Delhi': '07',
-  'Haryana': '06',
-  'Punjab': '03',
-  'Uttar Pradesh': '09',
-  'West Bengal': '19',
-  // ... see full list in backend
+// hooks/useAuth.js
+import { useState } from 'react';
+import api from '../services/api';
+
+export const useAuth = () => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const login = async (email, password) => {
+    setLoading(true);
+    try {
+      const { data } = await api.post('/auth/login', { email, password });
+      localStorage.setItem('token', data.token);
+      setUser(data.user);
+      return data;
+    } catch (error) {
+      throw error.response?.data || error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const register = async (name, email, password) => {
+    setLoading(true);
+    try {
+      const { data } = await api.post('/auth/register', { name, email, password });
+      localStorage.setItem('token', data.token);
+      setUser(data.user);
+      return data;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+  };
+
+  return { user, loading, login, register, logout };
+};
+```
+
+### GST Verification
+```javascript
+// components/GSTVerification.jsx
+import { useState } from 'react';
+import api from '../services/api';
+
+export const GSTVerification = ({ onVerified }) => {
+  const [gstin, setGstin] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const verifyGST = async () => {
+    if (gstin.length !== 15) {
+      alert('GSTIN must be 15 characters');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data } = await api.get(`/api/gst/${gstin}`);
+      
+      // Auto-fill form with mapped data
+      onVerified({
+        organisation: data.data.mappedOrganisation,
+        address: data.data.mappedAddress,
+        source: data.source  // 'database' or 'api'
+      });
+    } catch (error) {
+      alert('Failed to verify GSTIN');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <input
+        value={gstin}
+        onChange={(e) => setGstin(e.target.value.toUpperCase())}
+        placeholder="Enter GSTIN"
+        maxLength={15}
+      />
+      <button onClick={verifyGST} disabled={loading}>
+        {loading ? 'Verifying...' : 'Verify'}
+      </button>
+    </div>
+  );
+};
+```
+
+### HSN Search
+```javascript
+// components/HSNSearch.jsx
+import { useState, useEffect } from 'react';
+import api from '../services/api';
+
+export const HSNSearch = ({ onSelect }) => {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (query.length < 2) return;
+
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const { data } = await api.get('/api/hsn/search', {
+          params: { query, page: 1, size: 10 }
+        });
+        setResults(data.data.results);
+      } catch (error) {
+        console.error('HSN search failed:', error);
+      } finally {
+        setLoading(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  return (
+    <div>
+      <input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search HSN/SAC code..."
+      />
+      {loading && <div>Searching...</div>}
+      <ul>
+        {results.map((item) => (
+          <li key={item.hsnCode} onClick={() => onSelect(item)}>
+            <strong>{item.hsnCode}</strong> - {item.description}
+            <br />
+            <small>GST: {item.gstRate}%</small>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+```
+
+### Invoice PDF Download
+```javascript
+// utils/downloadPDF.js
+import api from '../services/api';
+
+export const downloadInvoicePDF = async (invoiceId, invoiceNumber) => {
+  try {
+    const response = await api.get(`/api/invoices/${invoiceId}/pdf`, {
+      responseType: 'blob',
+      timeout: 60000  // 60 seconds
+    });
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${invoiceNumber}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('PDF download failed:', error);
+    throw error;
+  }
 };
 ```
 
 ---
 
-## 8. ERROR HANDLING
+## Important Notes
 
-### Common Errors
-```json
-// 400 - Validation Error
-{
-  "error": "Customer not found"
-}
+1. **PDF Generation**: First request may take 15-30 seconds (Gotenberg wake-up time). Show loading indicator.
+2. **GST Verification**: Check `source` field - if "database", data is from cache (instant), if "api", fetched from external API.
+3. **Invoice Numbers**: Auto-generated as `INV-YYYY-###`. Don't send in request.
+4. **Tax Calculation**: Server-side automatic. Send item details, backend calculates CGST/SGST/IGST.
+5. **Authentication**: Store JWT token in localStorage, add to all protected API calls.
+6. **Error Handling**: All responses have `success: true/false` field.
 
-// 401 - Unauthorized
-{
-  "error": "Invalid token"
-}
+---
 
-// 404 - Not Found
-{
-  "error": "Invoice not found"
-}
+## Swagger Documentation
 
-// 500 - Server Error
-{
-  "success": false,
-  "error": "Failed to create invoice",
-  "details": "Error message"
-}
+Access interactive API docs at:
+```
+http://localhost:3000/api-docs
 ```
 
----
-
-## 9. SAMPLE WORKFLOW
-
-### Complete Invoice Creation Flow
-```javascript
-// 1. Create Organisation (one-time)
-const org = await createOrganisation({
-  name: "ABC Industries",
-  gstin: "27AABCU9603R1ZM",
-  // ... other fields
-});
-
-// 2. Create Customer
-const customer = await createCustomer({
-  name: "XYZ Corp",
-  gstin: "29AABCU9603R1ZM"
-});
-
-// 3. Add Customer Address
-const address = await createAddress({
-  customerId: customer.id,
-  type: "BILLING",
-  line1: "123 Street",
-  city: "Bangalore",
-  state: "Karnataka",
-  pincode: "560001"
-});
-
-// 4. Create Products
-const product = await createProduct({
-  name: "Product A",
-  hsnCode: "1234",
-  unit: "PCS",
-  price: 100,
-  taxRate: 18
-});
-
-// 5. Create Invoice
-const invoice = await createInvoice({
-  customerId: customer.id,
-  billingAddressId: address.id,
-  invoiceDate: "2024-01-31",
-  dueDate: "2024-02-28",
-  items: [{
-    productId: product.id,
-    description: product.name,
-    quantity: 10,
-    rate: product.price,
-    taxRate: product.taxRate
-  }]
-});
-
-// 6. Download PDF
-downloadPDF(invoice.id);
+Download OpenAPI JSON:
 ```
-
----
-
-## 10. TIPS FOR FRONTEND
-
-1. **Store JWT token** securely (localStorage/sessionStorage)
-2. **Validate required fields** before API call
-3. **Handle loading states** during PDF generation (can take 2-3 seconds)
-4. **Show tax breakup** clearly (CGST/SGST vs IGST)
-5. **Auto-fill** product details when selected
-6. **Calculate totals** on frontend for preview (backend will recalculate)
-7. **Use date pickers** for invoiceDate, dueDate, deliveryDate
-8. **Provide dropdowns** for enums (invoiceType, modeOfDelivery, etc.)
-9. **Show state codes** next to state selection
-10. **Preview invoice** before generating PDF
-
----
-
-## Support
-For issues or questions, check Swagger docs at: `http://localhost:3000/api-docs`
+http://localhost:3000/api-docs.json
+```

@@ -3,6 +3,7 @@ const prisma = require('../config/prisma');
 const { toWords } = require('number-to-words');
 const QRCode = require('qrcode');
 const { PDFDocument } = require('pdf-lib');
+const crypto = require('crypto');
 
 const STATE_CODES = {
   'Andhra Pradesh': '37', 'Arunachal Pradesh': '12', 'Assam': '18', 'Bihar': '10',
@@ -386,3 +387,108 @@ exports.generateInvoicePDF = async (req, res) => {
     }
   }
 };
+
+const generateSignature = (invoiceId) => {
+  return crypto.createHash('sha256').update(invoiceId + process.env.JWT_SECRET).digest('hex').substring(0, 16);
+};
+
+exports.getInvoicePDFPublic = async (req, res) => {
+  let browser;
+  try {
+    const { id, signature } = req.params;
+    
+    const validSignature = generateSignature(id);
+    if (signature !== validSignature) {
+      return res.status(403).json({ error: 'Invalid signature' });
+    }
+
+    const invoice = await prisma.invoice.findUnique({
+      where: { id },
+      include: {
+        customer: true,
+        items: { include: { product: true } }
+      }
+    });
+
+    if (!invoice) {
+      return res.status(404).json({ error: 'Invoice not found' });
+    }
+
+    const organisation = await prisma.organisation.findUnique({
+      where: { id: invoice.organisationId }
+    });
+
+    if (!organisation) {
+      return res.status(404).json({ error: 'Organisation not found' });
+    }
+
+    let billingAddress = null;
+    let shippingAddress = null;
+
+    if (invoice.billingAddressId) {
+      billingAddress = await prisma.address.findUnique({
+        where: { id: invoice.billingAddressId }
+      });
+    }
+
+    if (invoice.shippingAddressId) {
+      shippingAddress = await prisma.address.findUnique({
+        where: { id: invoice.shippingAddressId }
+      });
+    }
+
+    browser = await puppeteer.launch({ 
+      headless: true, 
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] 
+    });
+    const page = await browser.newPage();
+
+    const copies = ['ORIGINAL FOR BUYER', 'DUPLICATE FOR TRANSPORTER', 'TRIPLICATE FOR SUPPLIER'];
+    const pdfBuffers = [];
+
+    for (const copyType of copies) {
+      const modifiedInvoice = { ...invoice, invoiceCopyType: copyType };
+      const html = await generateInvoiceHTML(modifiedInvoice, organisation, billingAddress, shippingAddress);
+      
+      await page.setContent(html, { waitUntil: 'domcontentloaded' });
+      
+      const pdf = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' }
+      });
+      
+      pdfBuffers.push(pdf);
+    }
+    
+    await browser.close();
+    browser = null;
+
+    const mergedPdf = await PDFDocument.create();
+    
+    for (const pdfBuffer of pdfBuffers) {
+      const pdf = await PDFDocument.load(pdfBuffer);
+      const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+      copiedPages.forEach((page) => mergedPdf.addPage(page));
+    }
+    
+    const mergedPdfBytes = await mergedPdf.save();
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Length', mergedPdfBytes.length);
+    res.setHeader('Content-Disposition', `inline; filename="Invoice-${invoice.invoiceNumber}.pdf"`);
+    res.end(Buffer.from(mergedPdfBytes), 'binary');
+    
+    return Buffer.from(mergedPdfBytes);
+  } catch (error) {
+    if (browser) await browser.close();
+    console.error('PDF Generation Error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to generate PDF', details: error.message });
+    }
+    return null;
+  }
+};
+
+exports.generateSignature = generateSignature;
+exports.generateInvoiceHTML = generateInvoiceHTML;
