@@ -3,9 +3,7 @@ runtime: nodejs22
 build:
   commands:
     pre-build:
-      - yum install -y wget unzip fontconfig freetype freetype-devel fontconfig-devel libstdc++
       - npm install
-      - npx puppeteer browsers install chrome
       - npx prisma generate
     build:
       - echo "Build completed"
@@ -16,10 +14,6 @@ run:
   env:
     - name: NODE_ENV
       value: production
-    - name: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
-      value: false
-    - name: PUPPETEER_EXECUTABLE_PATH
-      value: /root/.cache/puppeteer/chrome/linux-144.0.7559.96/chrome-linux64/chrome
     - name: DATABASE_URL
       value: mongodb+srv://username:password@cluster.mongodb.net/dbname
     - name: JWT_SECRET
