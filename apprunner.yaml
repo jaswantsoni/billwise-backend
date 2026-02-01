@@ -1,18 +1,16 @@
 version: 1.0
-
 runtime: nodejs22
-
 build:
   commands:
     pre-build:
-      - npm ci
+      - yum install -y nss nspr atk at-spi2-atk cups-libs libdrm libXcomposite libXdamage libXrandr libgbm alsa-lib pango gtk3
+      - npm install
       - npx prisma generate
     build:
       - echo "Build completed"
-
 run:
   runtime-version: nodejs22
-  command: node server.js
+  command: sh -c "yum install -y nss nspr atk at-spi2-atk cups-libs libdrm libXcomposite libXdamage libXrandr libgbm alsa-lib pango gtk3 && node server.js"
   network:
     port: 8080
   env:
@@ -38,7 +36,3 @@ run:
       value: your-eway-app-key
     - name: FRONTEND_URL
       value: https://your-frontend-domain.com
-    - name: BACKEND_URL
-      value: https://your-backend-domain.com
-    - name: EMAIL_SERVICE
-      value: your-email-service-provider
