@@ -1,9 +1,11 @@
-const puppeteer = require('puppeteer');
-
+const axios = require('axios');
+const FormData = require('form-data');
 const prisma = require('../config/prisma');
 const { toWords } = require('number-to-words');
 const QRCode = require('qrcode');
 const { PDFDocument } = require('pdf-lib');
+
+const GOTENBERG_URL = process.env.GOTENBERG_URL || 'http://localhost:3001';
 
 const STATE_CODES = {
   'Andhra Pradesh': '37', 'Arunachal Pradesh': '12', 'Assam': '18', 'Bihar': '10',
@@ -299,7 +301,6 @@ const generateInvoiceHTML = async (invoice, organisation, billingAddress, shippi
 };
 
 exports.generateInvoicePDF = async (req, res) => {
-  let browser;
   try {
     const invoice = await prisma.invoice.findUnique({
       where: { id: req.params.id },
@@ -336,35 +337,32 @@ exports.generateInvoicePDF = async (req, res) => {
       });
     }
 
-    browser = await puppeteer.launch({ 
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-    const page = await browser.newPage();
-
-    // Generate all 3 copies
-    const copies = ['ORIGINAL FOR BUYER', 'DUPLICATE FOR TRANSPORTER', 'TRIPLICATE FOR SUPPLIER'];
+    // Generate all 4 copies
+    const copies = [
+      'ORIGINAL FOR BUYER',
+      'DUPLICATE FOR TRANSPORTER',
+      'TRIPLICATE FOR SUPPLIER',
+      'QUADRUPLICATE FOR RECEIVER'
+    ];
     const pdfBuffers = [];
 
     for (const copyType of copies) {
       const modifiedInvoice = { ...invoice, invoiceCopyType: copyType };
       const html = await generateInvoiceHTML(modifiedInvoice, organisation, billingAddress, shippingAddress);
       
-      await page.setContent(html, { waitUntil: 'domcontentloaded' });
+      // Send HTML to Gotenberg
+      const formData = new FormData();
+      formData.append('files', Buffer.from(html), { filename: 'index.html', contentType: 'text/html' });
       
-      const pdf = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' }
+      const response = await axios.post(`${GOTENBERG_URL}/forms/chromium/convert/html`, formData, {
+        headers: formData.getHeaders(),
+        responseType: 'arraybuffer'
       });
       
-      pdfBuffers.push(pdf);
+      pdfBuffers.push(response.data);
     }
-    
-    await browser.close();
-    browser = null;
 
-    // Merge all PDFs
+    // Merge all PDFs properly using pdf-lib
     const mergedPdf = await PDFDocument.create();
     
     for (const pdfBuffer of pdfBuffers) {
@@ -376,11 +374,9 @@ exports.generateInvoicePDF = async (req, res) => {
     const mergedPdfBytes = await mergedPdf.save();
     
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Length', mergedPdfBytes.length);
     res.setHeader('Content-Disposition', `inline; filename="Invoice-${invoice.invoiceNumber}.pdf"`);
-    res.end(Buffer.from(mergedPdfBytes), 'binary');
+    res.send(Buffer.from(mergedPdfBytes));
   } catch (error) {
-    if (browser) await browser.close();
     console.error('PDF Generation Error:', error);
     if (!res.headersSent) {
       res.status(500).json({ error: 'Failed to generate PDF', details: error.message });

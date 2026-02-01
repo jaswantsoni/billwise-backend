@@ -6,26 +6,3 @@ run:
   command: node server.js
   network:
     port: 8080
-  env:
-    - name: NODE_ENV
-      value: production
-    - name: DATABASE_URL
-      value: mongodb+srv://username:password@cluster.mongodb.net/dbname
-    - name: JWT_SECRET
-      value: your-super-secret-jwt-key-change-this
-    - name: SESSION_SECRET
-      value: your-super-secret-session-key-change-this
-    - name: GST_API_KEY
-      value: your-gst-api-key-from-gstincheck
-    - name: GOOGLE_CLIENT_ID
-      value: your-google-client-id.apps.googleusercontent.com
-    - name: GOOGLE_CLIENT_SECRET
-      value: GOCSPX-your-google-client-secret
-    - name: EWAY_USERNAME
-      value: your-eway-username
-    - name: EWAY_PASSWORD
-      value: your-eway-password
-    - name: EWAY_APP_KEY
-      value: your-eway-app-key
-    - name: FRONTEND_URL
-      value: https://your-frontend-domain.com
