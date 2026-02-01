@@ -1,12 +1,4 @@
-let puppeteer, chromium;
-
-// Use different puppeteer based on environment
-if (process.env.NODE_ENV === 'production') {
-  puppeteer = require('puppeteer-core');
-  chromium = require('@sparticuz/chromium');
-} else {
-  puppeteer = require('puppeteer');
-}
+const puppeteer = require('puppeteer');
 
 const prisma = require('../config/prisma');
 const { toWords } = require('number-to-words');
@@ -344,20 +336,10 @@ exports.generateInvoicePDF = async (req, res) => {
       });
     }
 
-    // Launch browser based on environment
-    if (process.env.NODE_ENV === 'production') {
-      browser = await puppeteer.launch({ 
-        args: chromium.args,
-        defaultViewport: chromium.defaultViewport,
-        executablePath: await chromium.executablePath(),
-        headless: chromium.headless
-      });
-    } else {
-      browser = await puppeteer.launch({ 
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-      });
-    }
+    browser = await puppeteer.launch({ 
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
     const page = await browser.newPage();
 
     // Generate all 3 copies
