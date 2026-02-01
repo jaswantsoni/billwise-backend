@@ -353,6 +353,9 @@ exports.generateInvoicePDF = async (req, res) => {
       // Send HTML to Gotenberg
       const formData = new FormData();
       formData.append('files', Buffer.from(html), { filename: 'index.html', contentType: 'text/html' });
+      formData.append('singlePage', 'true');
+      formData.append('printBackground', 'true');
+      formData.append('preferCssPageSize', 'true');
       
       const response = await axios.post(`${GOTENBERG_URL}/forms/chromium/convert/html`, formData, {
         headers: formData.getHeaders(),
