@@ -3,7 +3,7 @@ runtime: nodejs22
 build:
   commands:
     pre-build:
-      - yum install -y nss atk at-spi2-atk cups-libs libdrm libXcomposite libXdamage libXrandr libgbm alsa-lib pango gtk3
+      - yum install -y nss nspr atk at-spi2-atk cups-libs libdrm libXcomposite libXdamage libXrandr libgbm alsa-lib pango gtk3
       - npm install
       - npx prisma generate
     build:
