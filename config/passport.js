@@ -16,11 +16,17 @@ passport.use(
         });
 
         if (!user) {
+          const trialExpiry = new Date();
+          trialExpiry.setDate(trialExpiry.getDate() + 15);
+
           user = await prisma.user.create({
             data: {
               googleId: profile.id,
               email: profile.emails[0].value,
-              name: profile.displayName
+              name: profile.displayName,
+              planTier: 'premium',
+              planStatus: 'active',
+              planExpiry: trialExpiry
             }
           });
         }

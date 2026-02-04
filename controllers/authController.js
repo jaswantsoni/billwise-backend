@@ -14,11 +14,17 @@ exports.register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const trialExpiry = new Date();
+    trialExpiry.setDate(trialExpiry.getDate() + 15);
+
     const user = await prisma.user.create({
       data: { 
         email, 
         name, 
-        password: hashedPassword
+        password: hashedPassword,
+        planTier: 'premium',
+        planStatus: 'active',
+        planExpiry: trialExpiry
       }
     });
 
@@ -27,7 +33,18 @@ exports.register = async (req, res) => {
     // Send welcome email
     sendWelcomeEmail(user).catch(err => console.error('Welcome email failed:', err));
 
-    res.json({ success: true, token, user: { id: user.id, email, name } });
+    res.json({ 
+      success: true, 
+      token, 
+      user: { 
+        id: user.id, 
+        email, 
+        name,
+        planTier: 'premium',
+        planStatus: 'active',
+        trialDays: 5
+      } 
+    });
   } catch (error) {
     if (error.code === 'P2002') {
       return res.status(400).json({ error: error });

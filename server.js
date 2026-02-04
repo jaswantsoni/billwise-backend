@@ -13,7 +13,10 @@ const customerRoutes = require('./routes/customer');
 const productRoutes = require('./routes/product');
 const addressRoutes = require('./routes/address');
 const invoiceRoutes = require('./routes/invoice');
+const subscriptionRoutes = require('./routes/subscription');
+const userRoutes = require('./routes/user');
 const pdfController = require('./controllers/pdfController');
+const { startExpiryCheck } = require('./services/cronJobs');
 
 const hsnRoutes = require('./routes/hsn');
 
@@ -49,9 +52,14 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/addresses', addressRoutes);
 app.use('/api/invoices', invoiceRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/hsn', hsnRoutes);
 
 app.get('/public/invoice/:id/:signature', pdfController.getInvoicePDFPublic);
+
+// Start cron jobs
+startExpiryCheck();
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

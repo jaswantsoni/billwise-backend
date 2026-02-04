@@ -1,13 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const gstController = require('../controllers/gstController');
+const { authenticate } = require('../middleware/auth');
+const { requirePremium } = require('../middleware/subscription');
 
 /**
  * @swagger
  * /api/gst/{gstin}:
  *   get:
- *     summary: Fetch GST details by GSTIN
+ *     summary: Fetch GST details by GSTIN (Premium Feature - 15 day free trial)
  *     tags: [GST]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: gstin
@@ -18,10 +22,10 @@ const gstController = require('../controllers/gstController');
  *     responses:
  *       200:
  *         description: GST details fetched successfully
- *       400:
- *         description: Invalid GSTIN format
+ *       403:
+ *         description: Premium plan required
  */
-router.get('/:gstin', gstController.getGSTDetails);
+router.get('/:gstin', authenticate, requirePremium, gstController.getGSTDetails);
 
 /**
  * @swagger

@@ -91,7 +91,7 @@ exports.createInvoice = async (req, res) => {
 
     const year = new Date().getFullYear();
     const lastInvoice = await prisma.invoice.findFirst({
-      where: { invoiceNumber: { startsWith: `INV-${year}-` } },
+      where: { invoiceNumber: { startsWith: `INV-${year}-` }, organisationId },
       orderBy: { createdAt: 'desc' }
     });
 

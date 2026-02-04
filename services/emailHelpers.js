@@ -64,10 +64,23 @@ async function sendInvoiceEmail(invoice, customer, organisation, pdfBuffer, pdfL
   });
 }
 
+// Send subscription expiry reminder
+async function sendSubscriptionExpiryReminder(user) {
+  const daysRemaining = Math.ceil((new Date(user.planExpiry) - new Date()) / (1000 * 60 * 60 * 24));
+  await sendTemplateEmail(user.email, 'subscriptionExpiring', {
+    name: user.name,
+    planTier: user.planTier.charAt(0).toUpperCase() + user.planTier.slice(1),
+    daysRemaining,
+    expiryDate: new Date(user.planExpiry).toLocaleDateString(),
+    renewLink: `${process.env.FRONTEND_URL}/pricing`,
+  });
+}
+
 module.exports = {
   sendWelcomeEmail,
   sendVerificationEmail,
   sendPaymentReminderEmail,
   sendInventoryAlert,
   sendInvoiceEmail,
+  sendSubscriptionExpiryReminder,
 };

@@ -7,7 +7,7 @@ const { authenticate } = require('../middleware/auth');
  * @swagger
  * /api/organisations:
  *   post:
- *     summary: Create a new organisation
+ *     summary: Create a new organisation (First one free, additional require Premium)
  *     tags: [Organisations]
  *     security:
  *       - bearerAuth: []
@@ -68,6 +68,8 @@ const { authenticate } = require('../middleware/auth');
  *     responses:
  *       200:
  *         description: Organisation created successfully
+ *       403:
+ *         description: Premium plan required for multiple businesses
  */
 router.post('/', authenticate, organisationController.createOrganisation);
 
