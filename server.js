@@ -25,7 +25,7 @@ const purchaseRoutes = require('./routes/purchase');
 const hsnRoutes = require('./routes/hsn');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 const GOTENBERG_URL = process.env.GOTENBERG_URL || 'http://localhost:3001';
 
 // Keep Gotenberg awake - ping every 10 minutes
