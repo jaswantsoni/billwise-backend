@@ -1,25 +1,11 @@
 const axios = require('axios');
 const FormData = require('form-data');
-const axios = require('axios');
-const FormData = require('form-data');
 const prisma = require('../config/prisma');
 const { toWords } = require('number-to-words');
 const QRCode = require('qrcode');
 const { PDFDocument } = require('pdf-lib');
 const crypto = require('crypto');
 
-const GOTENBERG_URL = process.env.GOTENBERG_URL || 'http://localhost:3001';
-
-// Wake up Gotenberg service (Railway free tier sleeps)
-const wakeUpGotenberg = async () => {
-  try {
-    await axios.get(`${GOTENBERG_URL}/health`, { timeout: 5000 });
-  } catch (err) {
-    console.log('Gotenberg sleeping, waking up... (waiting 15 seconds)');
-    await new Promise(resolve => setTimeout(resolve, 15000));
-    await axios.get(`${GOTENBERG_URL}/health`, { timeout: 15000 });
-  }
-};
 
 const GOTENBERG_URL = process.env.GOTENBERG_URL || 'http://localhost:3001';
 
