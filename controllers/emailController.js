@@ -1,11 +1,10 @@
 const { sendInvoiceEmail } = require('../services/emailHelpers');
 const prisma = require('../config/prisma');
-const { generateSignature, getInvoicePDFPublic } = require('./pdfController');
-const puppeteer = require('puppeteer');
-const { PDFDocument } = require('pdf-lib');
+const { generateSignature } = require('./pdfController');
+const axios = require('axios');
+const FormData = require('form-data');
 
 exports.sendInvoiceByEmail = async (req, res) => {
-  let browser;
   try {
     const { id } = req.params;
     const { email } = req.body;
@@ -41,7 +40,7 @@ exports.sendInvoiceByEmail = async (req, res) => {
     const signature = generateSignature(id);
     const pdfLink = `${req.protocol}://${req.get('host')}/public/invoice/${id}/${signature}`;
 
-    // Generate PDF buffer for attachment
+    // Generate PDF buffer using Gotenberg
     let pdfBuffer = null;
     try {
       const generateInvoiceHTML = require('./pdfController').generateInvoiceHTML;
@@ -56,18 +55,23 @@ exports.sendInvoiceByEmail = async (req, res) => {
         shippingAddress = await prisma.address.findUnique({ where: { id: invoice.shippingAddressId } });
       }
 
-      browser = await puppeteer.launch({ 
-        headless: true, 
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] 
-      });
-      const page = await browser.newPage();
       const html = await generateInvoiceHTML(invoice, organisation, billingAddress, shippingAddress);
-      await page.setContent(html, { waitUntil: 'domcontentloaded' });
-      pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
-      await browser.close();
-      browser = null;
+      
+      // Use Gotenberg for PDF generation
+      const formData = new FormData();
+      formData.append('files', Buffer.from(html), { filename: 'index.html' });
+      
+      const response = await axios.post(
+        `${process.env.GOTENBERG_URL || 'http://localhost:3001'}/forms/chromium/convert/html`,
+        formData,
+        {
+          headers: formData.getHeaders(),
+          responseType: 'arraybuffer'
+        }
+      );
+      
+      pdfBuffer = Buffer.from(response.data);
     } catch (err) {
-      if (browser) await browser.close();
       console.error('PDF generation for attachment failed:', err.message);
     }
 
