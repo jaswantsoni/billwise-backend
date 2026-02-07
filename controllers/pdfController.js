@@ -1,9 +1,25 @@
 const axios = require('axios');
 const FormData = require('form-data');
+const axios = require('axios');
+const FormData = require('form-data');
 const prisma = require('../config/prisma');
 const { toWords } = require('number-to-words');
 const QRCode = require('qrcode');
 const { PDFDocument } = require('pdf-lib');
+const crypto = require('crypto');
+
+const GOTENBERG_URL = process.env.GOTENBERG_URL || 'http://localhost:3001';
+
+// Wake up Gotenberg service (Railway free tier sleeps)
+const wakeUpGotenberg = async () => {
+  try {
+    await axios.get(`${GOTENBERG_URL}/health`, { timeout: 5000 });
+  } catch (err) {
+    console.log('Gotenberg sleeping, waking up... (waiting 15 seconds)');
+    await new Promise(resolve => setTimeout(resolve, 15000));
+    await axios.get(`${GOTENBERG_URL}/health`, { timeout: 15000 });
+  }
+};
 
 const GOTENBERG_URL = process.env.GOTENBERG_URL || 'http://localhost:3001';
 
@@ -315,6 +331,8 @@ exports.generateInvoicePDF = async (req, res) => {
   try {
     await wakeUpGotenberg();
 
+    await wakeUpGotenberg();
+
     const invoice = await prisma.invoice.findUnique({
       where: { id: req.params.id },
       include: {
@@ -399,3 +417,106 @@ exports.generateInvoicePDF = async (req, res) => {
     }
   }
 };
+
+const generateSignature = (invoiceId) => {
+  return crypto.createHash('sha256').update(invoiceId + process.env.JWT_SECRET).digest('hex').substring(0, 16);
+};
+
+exports.getInvoicePDFPublic = async (req, res) => {
+  let browser;
+  try {
+    const { id, signature } = req.params;
+    
+    const validSignature = generateSignature(id);
+    if (signature !== validSignature) {
+      return res.status(403).json({ error: 'Invalid signature' });
+    }
+
+    const invoice = await prisma.invoice.findUnique({
+      where: { id },
+      include: {
+        customer: true,
+        items: { include: { product: true } }
+      }
+    });
+
+    if (!invoice) {
+      return res.status(404).json({ error: 'Invoice not found' });
+    }
+
+    const organisation = await prisma.organisation.findUnique({
+      where: { id: invoice.organisationId }
+    });
+
+    if (!organisation) {
+      return res.status(404).json({ error: 'Organisation not found' });
+    }
+
+    let billingAddress = null;
+    let shippingAddress = null;
+
+    if (invoice.billingAddressId) {
+      billingAddress = await prisma.address.findUnique({
+        where: { id: invoice.billingAddressId }
+      });
+    }
+
+    if (invoice.shippingAddressId) {
+      shippingAddress = await prisma.address.findUnique({
+        where: { id: invoice.shippingAddressId }
+      });
+    }
+
+    // Generate all 4 copies
+    const copies = [
+      'ORIGINAL FOR BUYER',
+      'DUPLICATE FOR TRANSPORTER',
+      'TRIPLICATE FOR SUPPLIER',
+      'QUADRUPLICATE FOR RECEIVER'
+    ];
+    const pdfBuffers = [];
+
+    for (const copyType of copies) {
+      const modifiedInvoice = { ...invoice, invoiceCopyType: copyType };
+      const html = await generateInvoiceHTML(modifiedInvoice, organisation, billingAddress, shippingAddress);
+      
+      // Send HTML to Gotenberg
+      const formData = new FormData();
+      formData.append('files', Buffer.from(html), { filename: 'index.html', contentType: 'text/html' });
+      formData.append('singlePage', 'true');
+      formData.append('printBackground', 'true');
+      formData.append('preferCssPageSize', 'true');
+      
+      const response = await axios.post(`${GOTENBERG_URL}/forms/chromium/convert/html`, formData, {
+        headers: formData.getHeaders(),
+        responseType: 'arraybuffer'
+      });
+      
+      pdfBuffers.push(response.data);
+    }
+
+    // Merge all PDFs properly using pdf-lib
+    const mergedPdf = await PDFDocument.create();
+    
+    for (const pdfBuffer of pdfBuffers) {
+      const pdf = await PDFDocument.load(pdfBuffer);
+      const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+      copiedPages.forEach((page) => mergedPdf.addPage(page));
+    }
+    
+    const mergedPdfBytes = await mergedPdf.save();
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${invoice.invoiceNumber}.pdf"`);
+    res.send(Buffer.from(mergedPdfBytes));
+  } catch (error) {
+    console.error('PDF Generation Error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to generate PDF', details: error.message });
+    }
+    return null;
+  }
+};
+
+exports.generateSignature = generateSignature;
+exports.generateInvoiceHTML = generateInvoiceHTML;

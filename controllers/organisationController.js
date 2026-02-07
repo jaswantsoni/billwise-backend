@@ -2,6 +2,33 @@ const prisma = require('../config/prisma');
 
 exports.createOrganisation = async (req, res) => {
   try {
+    // Check existing organisations count
+    const existingCount = await prisma.organisation.count({
+      where: { userId: req.userId }
+    });
+
+    // First organisation is free, additional require Premium
+    if (existingCount >= 1) {
+      const user = await prisma.user.findUnique({
+        where: { id: req.userId },
+        select: { planTier: true, planStatus: true, planExpiry: true }
+      });
+
+      const isPremium = user.planTier === 'premium' && 
+                        user.planStatus === 'active' && 
+                        (!user.planExpiry || new Date(user.planExpiry) > new Date());
+
+      if (!isPremium) {
+        return res.status(403).json({
+          error: 'Premium plan required',
+          requiresUpgrade: true,
+          currentPlan: user.planTier || 'free',
+          requiredPlan: 'premium',
+          feature: 'multiple_businesses'
+        });
+      }
+    }
+
     const { 
       name, 
       tradeName,
@@ -71,5 +98,21 @@ exports.getOrganisations = async (req, res) => {
     res.json({ success: true, data: organisations });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch organisations' });
+  }
+};
+
+exports.updateOrganisation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    const organisation = await prisma.organisation.update({
+      where: { id },
+      data: updateData
+    });
+
+    res.json({ success: true, data: organisation });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update organisation' });
   }
 };

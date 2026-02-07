@@ -1,13 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const hsnController = require('../controllers/hsnController');
+const { authenticate } = require('../middleware/auth');
+const { requirePremium } = require('../middleware/subscription');
 
 /**
  * @swagger
  * /api/hsn/search:
  *   get:
- *     summary: Search HSN/SAC codes by product name or description
+ *     summary: Search HSN/SAC codes (Premium Feature - 15 day free trial)
  *     tags: [HSN/SAC]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: query
@@ -18,8 +22,10 @@ const hsnController = require('../controllers/hsnController');
  *     responses:
  *       200:
  *         description: List of matching HSN codes with GST rates
+ *       403:
+ *         description: Premium plan required
  */
-router.get('/search', hsnController.searchHSN);
+router.get('/search', authenticate, requirePremium, hsnController.searchHSN);
 
 /**
  * @swagger

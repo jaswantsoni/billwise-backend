@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Your bill from {{organisationName}}</title>
+</head>
+<body style="margin:0; padding:0; background:#edf1f7; font-family: Arial, Helvetica, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:32px 0;">
+    <tr>
+      <td align="center">
+
+        <!-- MAIN CARD -->
+        <table width="620" cellpadding="0" cellspacing="0"
+          style="background:#ffffff; border-radius:10px; overflow:hidden;
+          box-shadow:0 8px 24px rgba(0,0,0,0.08);">
+
+          <!-- TOP BAR -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#0b5ed7,#4f8df7); padding:20px;">
+              <h2 style="margin:0; color:#ffffff; font-size:22px;">
+                {{organisationName}}
+              </h2>
+              <p style="margin:6px 0 0; font-size:13px; color:#dce7ff;">
+                Billing notification
+              </p>
+            </td>
+          </tr>
+
+          <!-- CONTENT -->
+          <tr>
+            <td style="padding:26px;">
+
+              <!-- GREETING -->
+              <p style="margin:0; font-size:15px; color:#222;">
+                Hi {{customerName}},
+              </p>
+
+              <!-- MESSAGE -->
+              <p style="margin:14px 0 0; font-size:14px; color:#444; line-height:1.6;">
+                Just a quick heads-up that your bill has been generated on behalf of
+                <strong>{{organisationName}}</strong>.
+                We've attached the invoice PDF for your records.
+              </p>
+
+              <!-- INVOICE SUMMARY -->
+              <table width="100%" cellpadding="0" cellspacing="0"
+                style="margin-top:18px; background:#f7f9fc; border:1px solid #e3e8f0; border-radius:8px;">
+                <tr>
+                  <td style="padding:16px;">
+                    <p style="margin:0; font-size:14px; color:#333;">
+                      <strong>Invoice No:</strong> {{invoiceNumber}}<br/>
+                      <strong>Date:</strong> {{invoiceDate}}
+                    </p>
+                  </td>
+                  <td align="right" style="padding:16px;">
+                    <span style="display:inline-block; background:#e7f0ff; color:#0b5ed7;
+                      padding:6px 10px; border-radius:20px; font-size:14px; font-weight:bold;">
+                      ₹{{total}}
+                    </span>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- PRODUCTS -->
+              <p style="margin:18px 0 6px; font-size:14px; color:#222;">
+                <strong>What this bill is for:</strong>
+              </p>
+              <ul style="margin:0; padding-left:18px; font-size:14px; color:#444;">
+                {{#items}}
+                <li style="margin-bottom:6px;">
+                  {{description}} — {{quantity}}
+                </li>
+                {{/items}}
+              </ul>
+
+              <!-- CTA BUTTONS -->
+              <table cellpadding="0" cellspacing="0" style="margin:24px 0;">
+                <tr>
+                  <td>
+                    <a href="{{pdfLink}}"
+                      style="display:inline-block; background:#0b5ed7; color:#ffffff;
+                      padding:12px 22px; font-size:14px; text-decoration:none;
+                      border-radius:6px; font-weight:bold;">
+                      View Invoice
+                    </a>
+                  </td>
+                  <td width="12"></td>
+                  <td>
+                    <a href="{{pdfLink}}"
+                      style="display:inline-block; background:#495057; color:#ffffff;
+                      padding:12px 22px; font-size:14px; text-decoration:none;
+                      border-radius:6px;">
+                      Download PDF
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- NOTE -->
+              <p style="margin:0; font-size:14px; color:#444;">
+                If anything doesn't look right or you need help, just reply to this
+                email — we're happy to assist.
+              </p>
+
+            </td>
+          </tr>
+
+          <!-- FOOTER -->
+          <tr>
+            <td style="background:#f1f4f9; padding:22px; border-top:1px solid #e2e6ed;">
+              <p style="margin:0; font-size:14px; color:#333;">
+                Regards,<br/>
+                <strong>{{organisationName}}</strong>
+              </p>
+
+              <p style="margin:10px 0 0; font-size:12px; color:#666;">
+                {{#organisationEmail}}
+                ✉️ {{organisationEmail}}<br/>
+                {{/organisationEmail}}
+                {{#organisationPhone}}
+                📞 {{organisationPhone}}
+                {{/organisationPhone}}
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

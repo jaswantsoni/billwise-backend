@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../config/prisma');
+const { sendWelcomeEmail } = require('../services/emailHelpers');
 
 exports.register = async (req, res) => {
   try {
@@ -13,17 +14,37 @@ exports.register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const trialExpiry = new Date();
+    trialExpiry.setDate(trialExpiry.getDate() + 15);
+
     const user = await prisma.user.create({
       data: { 
         email, 
         name, 
-        password: hashedPassword
+        password: hashedPassword,
+        planTier: 'premium',
+        planStatus: 'active',
+        planExpiry: trialExpiry
       }
     });
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-    res.json({ success: true, token, user: { id: user.id, email, name } });
+    // Send welcome email
+    sendWelcomeEmail(user).catch(err => console.error('Welcome email failed:', err));
+
+    res.json({ 
+      success: true, 
+      token, 
+      user: { 
+        id: user.id, 
+        email, 
+        name,
+        planTier: 'premium',
+        planStatus: 'active',
+        trialDays: 5
+      } 
+    });
   } catch (error) {
     if (error.code === 'P2002') {
       return res.status(400).json({ error: error });

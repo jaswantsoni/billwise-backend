@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const invoiceController = require('../controllers/invoiceController');
 const pdfController = require('../controllers/pdfController');
+const emailController = require('../controllers/emailController');
 const { authenticate } = require('../middleware/auth');
 
 /**
@@ -180,5 +181,34 @@ router.get('/:id', authenticate, invoiceController.getInvoice);
  *               format: binary
  */
 router.get('/:id/pdf', authenticate, pdfController.generateInvoicePDF);
+
+/**
+ * @swagger
+ * /api/invoices/{id}/send:
+ *   post:
+ *     summary: Send invoice via email
+ *     tags: [Invoices]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 description: Override customer email
+ *     responses:
+ *       200:
+ *         description: Invoice sent successfully
+ */
+router.post('/:id/send', authenticate, emailController.sendInvoiceByEmail);
 
 module.exports = router;

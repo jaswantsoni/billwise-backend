@@ -1,42 +1,65 @@
 const axios = require('axios');
+const prisma = require('../config/prisma');
 
 exports.searchHSN = async (req, res) => {
   try {
-    const { query } = req.query;
+    const { query, page = 1, size = 20 } = req.query;
 
     if (!query) {
       return res.status(400).json({ error: 'Query parameter required' });
     }
 
-    // Using HSN API - you can replace with actual HSN API
-    const response = await axios.get(`https://api.mastergst.com/public/search?query=${encodeURIComponent(query)}`);
+    // Using Clear.in HSN API
+    const response = await axios.get(`https://api.clear.in/api/ingestion/config/hsn/v2/search`, {
+      params: {
+        hsnSearchKey: query,
+        page: parseInt(page) - 1,
+        size: parseInt(size)
+      }
+    });
     
+    // Map and save results to DB
+    const mappedResults = await Promise.all(response.data.results?.map(async (item) => {
+      const hsnData = {
+        hsnCode: item.hsnCode,
+        type: item.type,
+        description: item.taxDetails?.[0]?.description || item.description || '',
+        gstRate: item.taxDetails?.[0]?.rateOfTax || null,
+        effectiveDate: item.taxDetails?.[0]?.effectiveDate || null,
+        chapterName: item.chapterName,
+        chapterNumber: item.chapterNumber,
+        taxDetails: item.taxDetails
+      };
+
+      // Save to DB (upsert)
+      await prisma.hSNCode.upsert({
+        where: { hsnCode: item.hsnCode },
+        update: hsnData,
+        create: hsnData
+      }).catch(() => {}); // Ignore errors
+
+      return {
+        ...hsnData,
+        allTaxDetails: item.taxDetails
+      };
+    }) || []);
+
     res.json({
       success: true,
-      data: response.data
+      data: {
+        results: mappedResults,
+        totalResults: response.data.totalResults,
+        hasMore: response.data.hasMore,
+        page: parseInt(page),
+        size: parseInt(size)
+      }
     });
   } catch (error) {
-    // Fallback with common HSN codes if API fails
-    const commonHSN = [
-      { hsnCode: '8471', description: 'Computers and laptops', gstRate: 18 },
-      { hsnCode: '8517', description: 'Mobile phones', gstRate: 18 },
-      { hsnCode: '9405', description: 'Lamps and lighting fittings', gstRate: 18 },
-      { hsnCode: '8539', description: 'LED lights and bulbs', gstRate: 12 },
-      { hsnCode: '8544', description: 'Electrical wires and cables', gstRate: 18 },
-      { hsnCode: '7308', description: 'Structures and parts of iron/steel', gstRate: 18 },
-      { hsnCode: '3926', description: 'Plastic products', gstRate: 18 },
-      { hsnCode: '6815', description: 'Stone or cement articles', gstRate: 28 },
-      { hsnCode: '9403', description: 'Furniture', gstRate: 18 },
-      { hsnCode: '4901', description: 'Printed books', gstRate: 0 }
-    ];
-
-    const filtered = commonHSN.filter(item => 
-      item.description.toLowerCase().includes(req.query.query.toLowerCase())
-    );
-
-    res.json({
-      success: true,
-      data: filtered.length > 0 ? filtered : commonHSN.slice(0, 5)
+    console.error('HSN search error:', error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to search HSN codes',
+      details: error.message
     });
   }
 };
