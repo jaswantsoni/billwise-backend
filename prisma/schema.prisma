@@ -117,7 +117,7 @@ model Product {
 
 model Invoice {
   id                 String        @id @default(auto()) @map("_id") @db.ObjectId
-  invoiceNumber      String        
+  invoiceNumber      String      
   invoiceType        String        @default("TAX_INVOICE")
   invoiceCopyType    String        @default("ORIGINAL")
   customerId         String        @db.ObjectId
