@@ -222,7 +222,9 @@ exports.getInvoices = async (req, res) => {
       where: { organisationId: organisationId??organisations[0].id },
       include: {
         items: true,
-        customer: true
+        customer: true,
+        creditNotes: { where: { status: { not: 'CANCELLED' } } },
+        debitNotes: { where: { status: { not: 'CANCELLED' } } }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -259,6 +261,14 @@ exports.getInvoice = async (req, res) => {
           include: {
             addresses: true
           }
+        },
+        creditNotes: {
+          where: { status: { not: 'CANCELLED' } },
+          include: { items: true }
+        },
+        debitNotes: {
+          where: { status: { not: 'CANCELLED' } },
+          include: { items: true }
         }
       }
     });

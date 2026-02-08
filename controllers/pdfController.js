@@ -289,7 +289,13 @@ const generateInvoiceHTML = async (invoice, organisation, billingAddress, shippi
         ` : ''}
         
         <div class="footer-section">
-          ${invoice.notes ? `<div class="footer-title">Notes:</div><div class="footer-text">${invoice.notes}</div>` : ''}
+          ${invoice.creditNotes?.length > 0 || invoice.debitNotes?.length > 0 ? `
+          <div class="footer-title">Adjustments:</div>
+          ${invoice.creditNotes?.map(cn => `<div class="footer-text">• Credit Note ${cn.noteNumber} dated ${new Date(cn.issueDate).toLocaleDateString('en-IN')} - ₹${cn.totalAmount.toFixed(2)} ${cn.reason ? '(' + cn.reason + ')' : ''}</div>`).join('')}
+          ${invoice.debitNotes?.map(dn => `<div class="footer-text">• Debit Note ${dn.noteNumber} dated ${new Date(dn.issueDate).toLocaleDateString('en-IN')} - ₹${dn.totalAmount.toFixed(2)} ${dn.reason ? '(' + dn.reason + ')' : ''}</div>`).join('')}
+          <div class="footer-text" style="font-weight: 600; margin-top: 4px;">Adjusted Balance: ₹${invoice.balanceAmount?.toFixed(2) || invoice.total.toFixed(2)}</div>
+          ` : ''}
+          ${invoice.notes ? `<div class="footer-title" style="margin-top: 6px;">Notes:</div><div class="footer-text">${invoice.notes}</div>` : ''}
           ${invoice.termsConditions ? `<div class="footer-title" style="margin-top: 6px;">Terms & Conditions:</div><div class="footer-text">${invoice.termsConditions}</div>` : ''}
           ${invoice.paymentInstructions ? `<div class="footer-title" style="margin-top: 6px;">Payment Instructions:</div><div class="footer-text">${invoice.paymentInstructions}</div>` : ''}
           ${invoice.deliveryInstructions ? `<div class="footer-title" style="margin-top: 6px;">Delivery Instructions:</div><div class="footer-text">${invoice.deliveryInstructions}</div>` : ''}
@@ -319,7 +325,9 @@ exports.generateInvoicePDF = async (req, res) => {
       where: { id: req.params.id },
       include: {
         customer: true,
-        items: { include: { product: true } }
+        items: { include: { product: true } },
+        creditNotes: { where: { status: { not: 'CANCELLED' } } },
+        debitNotes: { where: { status: { not: 'CANCELLED' } } }
       }
     });
 
