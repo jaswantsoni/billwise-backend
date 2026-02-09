@@ -1,8 +1,9 @@
 const prisma = require('../config/prisma');
+const { sendCreditNoteEmail } = require('../utils/emailService');
 
 exports.createCreditNote = async (req, res) => {
   try {
-    const { invoiceId, issueDate, reason, items } = req.body;
+    const { invoiceId, issueDate, reason, items, sendEmail } = req.body;
 
     const organisations = await prisma.organisation.findMany({
       where: { userId: req.userId },
@@ -135,6 +136,15 @@ exports.createCreditNote = async (req, res) => {
           where: { id: item.invoiceItemId },
           data: { creditedQty: { increment: item.quantity } }
         });
+      }
+    }
+
+    if (sendEmail && invoice.customer.email) {
+      try {
+        const user = await prisma.user.findUnique({ where: { id: req.userId } });
+        await sendCreditNoteEmail(creditNote, invoice.customer, organisation, user.email);
+      } catch (emailError) {
+        console.error('Email sending failed:', emailError);
       }
     }
 

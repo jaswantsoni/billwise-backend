@@ -1,8 +1,9 @@
 const prisma = require('../config/prisma');
+const { sendDebitNoteEmail } = require('../utils/emailService');
 
 exports.createDebitNote = async (req, res) => {
   try {
-    const { invoiceId, issueDate, reason, items } = req.body;
+    const { invoiceId, issueDate, reason, items, sendEmail } = req.body;
 
     const organisations = await prisma.organisation.findMany({
       where: { userId: req.userId },
@@ -112,6 +113,15 @@ exports.createDebitNote = async (req, res) => {
         balanceAmount: { increment: totalAmount }
       }
     });
+
+    if (sendEmail && invoice.customer.email) {
+      try {
+        const user = await prisma.user.findUnique({ where: { id: req.userId } });
+        await sendDebitNoteEmail(debitNote, invoice.customer, organisation, user.email);
+      } catch (emailError) {
+        console.error('Email sending failed:', emailError);
+      }
+    }
 
     res.json({ success: true, data: debitNote });
   } catch (error) {

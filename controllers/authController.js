@@ -13,11 +13,17 @@ exports.register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const trialEndDate = new Date();
+    trialEndDate.setDate(trialEndDate.getDate() + 15);
+
     const user = await prisma.user.create({
       data: { 
         email, 
         name, 
-        password: hashedPassword
+        password: hashedPassword,
+        planTier: 'premium',
+        planStatus: 'active',
+        planExpiry: trialEndDate
       }
     });
 
