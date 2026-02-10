@@ -206,7 +206,7 @@ exports.createInvoice = async (req, res) => {
         billingAddressId,
         shippingAddressId,
         invoiceDate: new Date(invoiceDate),
-        dueDate: new Date(dueDate),
+        dueDate: dueDate ? new Date(dueDate) : new Date(new Date(invoiceDate).getTime() + 30 * 24 * 60 * 60 * 1000),
         placeOfSupply: placeOfSupply || billState,
         reverseCharge: reverseCharge || false,
         subtotal: calculatedSubtotal,
