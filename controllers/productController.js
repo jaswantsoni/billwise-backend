@@ -2,7 +2,7 @@ const prisma = require('../config/prisma');
 
 exports.createProduct = async (req, res) => {
   try {
-    const { name, description, sku, hsnCode, sacCode, unit, price, taxRate, currency } = req.body;
+    const { name, description, sku, hsnCode, sacCode, unit, price, taxRate, currency, taxInclusive } = req.body;
 
     const organisations = await prisma.organisation.findMany({
       where: { userId: req.userId },
@@ -24,6 +24,7 @@ exports.createProduct = async (req, res) => {
         price,
         taxRate,
         currency: currency || 'INR',
+        taxInclusive: taxInclusive || false,
         organisationId: organisations[0].id
       }
     });
