@@ -88,4 +88,39 @@ router.get('/', authenticate, customerController.getCustomers);
  */
 router.put('/shipping', authenticate, customerController.updateShippingAddress);
 
+/**
+ * @swagger
+ * /api/customers/{id}:
+ *   put:
+ *     summary: Update customer details
+ *     tags: [Customers]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               gstin:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Customer updated successfully
+ */
+router.put('/:id', authenticate, customerController.updateCustomer);
+
 module.exports = router;
