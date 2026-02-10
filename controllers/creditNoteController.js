@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const { sendCreditNoteEmail } = require('../utils/emailService');
+const { generateCreditNoteHTML } = require('../utils/noteTemplates');
 
 exports.createCreditNote = async (req, res) => {
   try {
@@ -142,7 +143,8 @@ exports.createCreditNote = async (req, res) => {
     if (sendEmail && invoice.customer.email) {
       try {
         const user = await prisma.user.findUnique({ where: { id: req.userId } });
-        await sendCreditNoteEmail(creditNote, invoice.customer, organisation, user.email);
+        const creditNoteWithInvoice = { ...creditNote, invoice };
+        await sendCreditNoteEmail(creditNoteWithInvoice, invoice.customer, organisation, user.email);
       } catch (emailError) {
         console.error('Email sending failed:', emailError);
       }
@@ -311,86 +313,7 @@ exports.getCreditNotePDFPublic = async (req, res) => {
   }
 };
 
-function generateCreditNoteHTML(creditNote, organisation) {
-  const toWords = require('number-to-words');
-  const amountInWords = toWords.toWords(Math.floor(creditNote.totalAmount));
 
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; }
-    .title { font-size: 24px; font-weight: bold; color: #d32f2f; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #000; padding: 8px; text-align: left; }
-    th { background-color: #f5f5f5; }
-    .total { font-weight: bold; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div class="title">CREDIT NOTE</div>
-    <h2>${organisation.name}</h2>
-    <p>${organisation.address}, ${organisation.city}, ${organisation.state} - ${organisation.pincode}</p>
-    <p>GSTIN: ${organisation.gstin || 'N/A'} | Phone: ${organisation.phone}</p>
-  </div>
-
-  <table>
-    <tr><td><strong>Credit Note No:</strong></td><td>${creditNote.noteNumber}</td></tr>
-    <tr><td><strong>Date:</strong></td><td>${new Date(creditNote.issueDate).toLocaleDateString()}</td></tr>
-    <tr><td><strong>Original Invoice:</strong></td><td>${creditNote.invoice.invoiceNumber}</td></tr>
-    <tr><td><strong>Original Invoice Amount:</strong></td><td>₹${creditNote.invoice.total.toFixed(2)}</td></tr>
-    <tr><td><strong>Customer:</strong></td><td>${creditNote.customer.name}</td></tr>
-    <tr><td><strong>Reason:</strong></td><td>${creditNote.reason || 'N/A'}</td></tr>
-  </table>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Item</th>
-        <th>HSN/SAC</th>
-        <th>Qty</th>
-        <th>Rate</th>
-        <th>Tax %</th>
-        <th>Amount</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${creditNote.items.map(item => `
-        <tr>
-          <td>${item.description}</td>
-          <td>${item.hsnSac || ''}</td>
-          <td>${item.quantity} ${item.unit}</td>
-          <td>₹${item.rate.toFixed(2)}</td>
-          <td>${item.taxRate}%</td>
-          <td>₹${item.lineTotal.toFixed(2)}</td>
-        </tr>
-      `).join('')}
-    </tbody>
-    <tfoot>
-      <tr><td colspan="5" class="total">Subtotal</td><td>₹${creditNote.subtotal.toFixed(2)}</td></tr>
-      ${creditNote.cgst > 0 ? `<tr><td colspan="5">CGST</td><td>₹${creditNote.cgst.toFixed(2)}</td></tr>` : ''}
-      ${creditNote.sgst > 0 ? `<tr><td colspan="5">SGST</td><td>₹${creditNote.sgst.toFixed(2)}</td></tr>` : ''}
-      ${creditNote.igst > 0 ? `<tr><td colspan="5">IGST</td><td>₹${creditNote.igst.toFixed(2)}</td></tr>` : ''}
-      <tr><td colspan="5" class="total">Total</td><td class="total">₹${creditNote.totalAmount.toFixed(2)}</td></tr>
-    </tfoot>
-  </table>
-
-  <table style="margin-top: 10px;">
-    <tr style="background-color: #fff3cd;"><td colspan="5" class="total">Original Invoice Total:</td><td class="total">₹${creditNote.invoice.total.toFixed(2)}</td></tr>
-    <tr style="background-color: #f8d7da;"><td colspan="5" class="total">Less: Credit Note Amount:</td><td class="total">-₹${creditNote.totalAmount.toFixed(2)}</td></tr>
-    <tr style="background-color: #d4edda;"><td colspan="5" class="total">Revised Invoice Amount:</td><td class="total">₹${(creditNote.invoice.total - creditNote.totalAmount).toFixed(2)}</td></tr>
-  </table>
-
-  <p><strong>Amount in Words:</strong> ${amountInWords.toUpperCase()} RUPEES ONLY</p>
-  <p style="margin-top: 40px;">This is a computer-generated credit note.</p>
-</body>
-</html>
-  `;
-}
 
 exports.getInvoiceCreditNotes = async (req, res) => {
   try {

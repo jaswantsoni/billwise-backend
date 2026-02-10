@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const { sendDebitNoteEmail } = require('../utils/emailService');
+const { generateDebitNoteHTML } = require('../utils/noteTemplates');
 
 exports.createDebitNote = async (req, res) => {
   try {
@@ -117,7 +118,8 @@ exports.createDebitNote = async (req, res) => {
     if (sendEmail && invoice.customer.email) {
       try {
         const user = await prisma.user.findUnique({ where: { id: req.userId } });
-        await sendDebitNoteEmail(debitNote, invoice.customer, organisation, user.email);
+        const debitNoteWithInvoice = { ...debitNote, invoice };
+        await sendDebitNoteEmail(debitNoteWithInvoice, invoice.customer, organisation, user.email);
       } catch (emailError) {
         console.error('Email sending failed:', emailError);
       }
@@ -286,86 +288,6 @@ exports.getDebitNotePDFPublic = async (req, res) => {
   }
 };
 
-function generateDebitNoteHTML(debitNote, organisation) {
-  const toWords = require('number-to-words');
-  const amountInWords = toWords.toWords(Math.floor(debitNote.totalAmount));
-
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; }
-    .title { font-size: 24px; font-weight: bold; color: #1976d2; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #000; padding: 8px; text-align: left; }
-    th { background-color: #f5f5f5; }
-    .total { font-weight: bold; }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <div class="title">DEBIT NOTE</div>
-    <h2>${organisation.name}</h2>
-    <p>${organisation.address}, ${organisation.city}, ${organisation.state} - ${organisation.pincode}</p>
-    <p>GSTIN: ${organisation.gstin || 'N/A'} | Phone: ${organisation.phone}</p>
-  </div>
-
-  <table>
-    <tr><td><strong>Debit Note No:</strong></td><td>${debitNote.noteNumber}</td></tr>
-    <tr><td><strong>Date:</strong></td><td>${new Date(debitNote.issueDate).toLocaleDateString()}</td></tr>
-    <tr><td><strong>Original Invoice:</strong></td><td>${debitNote.invoice.invoiceNumber}</td></tr>
-    <tr><td><strong>Original Invoice Amount:</strong></td><td>₹${debitNote.invoice.total.toFixed(2)}</td></tr>
-    <tr><td><strong>Customer:</strong></td><td>${debitNote.customer.name}</td></tr>
-    <tr><td><strong>Reason:</strong></td><td>${debitNote.reason || 'N/A'}</td></tr>
-  </table>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Item</th>
-        <th>HSN/SAC</th>
-        <th>Qty</th>
-        <th>Rate</th>
-        <th>Tax %</th>
-        <th>Amount</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${debitNote.items.map(item => `
-        <tr>
-          <td>${item.description}</td>
-          <td>${item.hsnSac || ''}</td>
-          <td>${item.quantity} ${item.unit}</td>
-          <td>₹${item.rate.toFixed(2)}</td>
-          <td>${item.taxRate}%</td>
-          <td>₹${item.lineTotal.toFixed(2)}</td>
-        </tr>
-      `).join('')}
-    </tbody>
-    <tfoot>
-      <tr><td colspan="5" class="total">Subtotal</td><td>₹${debitNote.subtotal.toFixed(2)}</td></tr>
-      ${debitNote.cgst > 0 ? `<tr><td colspan="5">CGST</td><td>₹${debitNote.cgst.toFixed(2)}</td></tr>` : ''}
-      ${debitNote.sgst > 0 ? `<tr><td colspan="5">SGST</td><td>₹${debitNote.sgst.toFixed(2)}</td></tr>` : ''}
-      ${debitNote.igst > 0 ? `<tr><td colspan="5">IGST</td><td>₹${debitNote.igst.toFixed(2)}</td></tr>` : ''}
-      <tr><td colspan="5" class="total">Total</td><td class="total">₹${debitNote.totalAmount.toFixed(2)}</td></tr>
-    </tfoot>
-  </table>
-
-  <table style="margin-top: 10px;">
-    <tr style="background-color: #fff3cd;"><td colspan="5" class="total">Original Invoice Total:</td><td class="total">₹${debitNote.invoice.total.toFixed(2)}</td></tr>
-    <tr style="background-color: #d1ecf1;"><td colspan="5" class="total">Add: Debit Note Amount:</td><td class="total">+₹${debitNote.totalAmount.toFixed(2)}</td></tr>
-    <tr style="background-color: #d4edda;"><td colspan="5" class="total">Revised Invoice Amount:</td><td class="total">₹${(debitNote.invoice.total + debitNote.totalAmount).toFixed(2)}</td></tr>
-  </table>
-
-  <p><strong>Amount in Words:</strong> ${amountInWords.toUpperCase()} RUPEES ONLY</p>
-  <p style="margin-top: 40px;">This is a computer-generated debit note.</p>
-</body>
-</html>
-  `;
-}
 
 exports.getInvoiceDebitNotes = async (req, res) => {
   try {

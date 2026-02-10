@@ -259,8 +259,11 @@ const generateInvoiceHTML = async (invoice, organisation, billingAddress, shippi
               ${isInterstate && invoice.igst > 0 ? `<div class="summary-line"><span>IGST:</span><span>₹${invoice.igst.toFixed(2)}</span></div>` : ''}
               ${invoice.cess > 0 ? `<div class="summary-line"><span>CESS:</span><span>₹${invoice.cess.toFixed(2)}</span></div>` : ''}
               ${invoice.deliveryCharges > 0 ? `<div class="summary-line"><span>Delivery Charges:</span><span>₹${invoice.deliveryCharges.toFixed(2)}</span></div>` : ''}
-              ${invoice.packingCharges > 0 ? `<div class="summary-line"><span>Packing Charges:</span><span>₹${invoice.packingCharges.toFixed(2)}</span></div>` : ''}
+              ${invoice.deliveryChargesTax > 0 ? `<div class="summary-line"><span>GST on Delivery:</span><span>₹${invoice.deliveryChargesTax.toFixed(2)}</span></div>` : ''}
+              ${invoice.freightCharges > 0 ? `<div class="summary-line"><span>Freight Charges:</span><span>₹${invoice.freightCharges.toFixed(2)}</span></div>` : ''}
+              ${invoice.freightChargesTax > 0 ? `<div class="summary-line"><span>GST on Freight:</span><span>₹${invoice.freightChargesTax.toFixed(2)}</span></div>` : ''}
               ${invoice.otherCharges > 0 ? `<div class="summary-line"><span>Other Charges:</span><span>₹${invoice.otherCharges.toFixed(2)}</span></div>` : ''}
+              ${invoice.otherChargesTax > 0 ? `<div class="summary-line"><span>GST on Other Charges:</span><span>₹${invoice.otherChargesTax.toFixed(2)}</span></div>` : ''}
               ${invoice.roundOff !== 0 ? `<div class="summary-line"><span>Round Off:</span><span>₹${invoice.roundOff.toFixed(2)}</span></div>` : ''}
               <div class="summary-line total"><span>Grand Total:</span><span>₹${invoice.total.toFixed(2)}</span></div>
             </div>

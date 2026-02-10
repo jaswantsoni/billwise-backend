@@ -107,6 +107,7 @@ model Product {
   unit           String
   price          Float
   taxRate        Float
+  taxInclusive   Boolean       @default(false)
   currency       String        @default("INR")
   organisationId String        @db.ObjectId
   organisation   Organisation  @relation(fields: [organisationId], references: [id])
@@ -141,8 +142,11 @@ model Invoice {
   cess               Float         @default(0)
   roundOff           Float         @default(0)
   deliveryCharges    Float         @default(0)
-  packingCharges     Float         @default(0)
+  freightCharges     Float         @default(0)
   otherCharges       Float         @default(0)
+  deliveryChargesTax Float         @default(0)
+  freightChargesTax  Float         @default(0)
+  otherChargesTax    Float         @default(0)
   totalTax           Float
   total              Float
   amountInWords      String?
@@ -207,6 +211,7 @@ model InvoiceItem {
   rate        Float
   discount    Float    @default(0)
   taxRate     Float
+  taxInclusive Boolean @default(false)
   cgst        Float    @default(0)
   sgst        Float    @default(0)
   igst        Float    @default(0)

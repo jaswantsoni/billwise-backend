@@ -33,8 +33,11 @@ exports.createInvoice = async (req, res) => {
       paymentMethod,
       paymentTerms,
       deliveryCharges,
-      packingCharges,
-      otherCharges
+      freightCharges,
+      otherCharges,
+      deliveryChargesTaxRate,
+      freightChargesTaxRate,
+      otherChargesTaxRate
     } = req.body;
 
     const organisations = await prisma.organisation.findMany({
@@ -111,8 +114,25 @@ exports.createInvoice = async (req, res) => {
 
     const validatedItems = await Promise.all(items.map(async item => {
       const product = await prisma.product.findUnique({ where: { id: item.productId } });
-      const itemAmount = item.quantity * item.rate;
-      const itemTaxAmount = itemAmount * (item.taxRate / 100);
+      
+      // Allow custom rate per invoice item (flexible pricing)
+      const itemRate = item.rate;
+      const itemTaxRate = item.taxRate;
+      const isTaxInclusive = item.taxInclusive !== undefined ? item.taxInclusive : false;
+      
+      let itemAmount, itemTaxAmount;
+      
+      if (isTaxInclusive) {
+        // Price includes tax - extract tax from total
+        const totalWithTax = item.quantity * itemRate;
+        itemAmount = totalWithTax / (1 + itemTaxRate / 100);
+        itemTaxAmount = totalWithTax - itemAmount;
+      } else {
+        // Price excludes tax - add tax on top
+        itemAmount = item.quantity * itemRate;
+        itemTaxAmount = itemAmount * (itemTaxRate / 100);
+      }
+      
       calculatedSubtotal += itemAmount;
       calculatedTotalTax += itemTaxAmount;
 
@@ -133,9 +153,10 @@ exports.createInvoice = async (req, res) => {
         hsnSac: item.hsnSac || product?.hsnCode || product?.sacCode || '',
         quantity: item.quantity,
         unit: item.unit || product?.unit || 'PCS',
-        rate: item.rate,
+        rate: itemRate,
         discount: item.discount || 0,
-        taxRate: item.taxRate,
+        taxRate: itemTaxRate,
+        taxInclusive: isTaxInclusive,
         cgst,
         sgst,
         igst,
@@ -144,7 +165,24 @@ exports.createInvoice = async (req, res) => {
       };
     }));
 
-    const calculatedTotal = calculatedSubtotal + calculatedTotalTax + (deliveryCharges || 0) + (packingCharges || 0) + (otherCharges || 0);
+    // Calculate tax on extra charges
+    const deliveryTax = (deliveryCharges || 0) * ((deliveryChargesTaxRate || 0) / 100);
+    const freightTax = (freightCharges || 0) * ((freightChargesTaxRate || 0) / 100);
+    const otherTax = (otherCharges || 0) * ((otherChargesTaxRate || 0) / 100);
+    const totalChargesTax = deliveryTax + freightTax + otherTax;
+    
+    if (totalChargesTax > 0) {
+      if (isInterstate) {
+        totalIGST += totalChargesTax;
+      } else {
+        totalCGST += totalChargesTax / 2;
+        totalSGST += totalChargesTax / 2;
+      }
+      calculatedTotalTax += totalChargesTax;
+    }
+
+    const extraCharges = (deliveryCharges || 0) + (freightCharges || 0) + (otherCharges || 0);
+    const calculatedTotal = calculatedSubtotal + calculatedTotalTax + extraCharges;
 
     const invoice = await prisma.invoice.create({
       data: {
@@ -163,8 +201,11 @@ exports.createInvoice = async (req, res) => {
         sgst: totalSGST,
         igst: totalIGST,
         deliveryCharges: deliveryCharges || 0,
-        packingCharges: packingCharges || 0,
+        freightCharges: freightCharges || 0,
         otherCharges: otherCharges || 0,
+        deliveryChargesTax: deliveryTax,
+        freightChargesTax: freightTax,
+        otherChargesTax: otherTax,
         totalTax: calculatedTotalTax,
         total: calculatedTotal,
         balanceAmount: calculatedTotal,

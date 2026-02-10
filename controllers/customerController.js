@@ -104,3 +104,38 @@ exports.updateShippingAddress = async (req, res) => {
     res.status(500).json({ error: 'Failed to update shipping address' });
   }
 };
+
+exports.updateCustomer = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, gstin, email, phone } = req.body;
+
+    const organisations = await prisma.organisation.findMany({
+      where: { userId: req.userId },
+      take: 1
+    });
+
+    if (!organisations.length) {
+      return res.status(400).json({ error: 'No organisation found' });
+    }
+
+    const customer = await prisma.customer.findFirst({
+      where: { id, organisationId: organisations[0].id }
+    });
+
+    if (!customer) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+
+    const updatedCustomer = await prisma.customer.update({
+      where: { id },
+      data: { name, gstin, email, phone },
+      include: { addresses: true }
+    });
+
+    res.json({ success: true, data: updatedCustomer });
+  } catch (error) {
+    console.error('Customer update error:', error);
+    res.status(500).json({ error: 'Failed to update customer', details: error.message });
+  }
+};
