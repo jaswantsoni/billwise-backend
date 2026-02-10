@@ -246,6 +246,10 @@ exports.createInvoice = async (req, res) => {
 
 exports.getInvoices = async (req, res) => {
   let organisationId =  req.query.organisationId;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 50;
+  const skip = (page - 1) * limit;
+
   try {
     const organisations = await prisma.organisation.findMany({
       where: { userId: req.userId },
@@ -253,21 +257,32 @@ exports.getInvoices = async (req, res) => {
     });
 
     if (!organisations.length) {
-      return res.json({ success: true, data: [] });
+      return res.json({ success: true, data: [], pagination: { page: 1, limit, total: 0, totalPages: 0 } });
     }
 
-    const invoices = await prisma.invoice.findMany({
-      where: { organisationId: organisationId??organisations[0].id },
-      include: {
-        items: true,
-        customer: true,
-        creditNotes: { where: { status: { not: 'CANCELLED' } } },
-        debitNotes: { where: { status: { not: 'CANCELLED' } } }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+    const orgId = organisationId ?? organisations[0].id;
 
-    res.json({ success: true, data: invoices });
+    const [invoices, total] = await Promise.all([
+      prisma.invoice.findMany({
+        where: { organisationId: orgId },
+        include: {
+          items: true,
+          customer: true,
+          creditNotes: { where: { status: { not: 'CANCELLED' } } },
+          debitNotes: { where: { status: { not: 'CANCELLED' } } }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.invoice.count({ where: { organisationId: orgId } })
+    ]);
+
+    res.json({ 
+      success: true, 
+      data: invoices,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+    });
   } catch (error) {
     console.error('Get invoices error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch invoices', details: error.message });

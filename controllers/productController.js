@@ -38,20 +38,34 @@ exports.createProduct = async (req, res) => {
 
 exports.getProducts = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+
     const organisations = await prisma.organisation.findMany({
       where: { userId: req.userId },
       take: 1
     });
 
     if (!organisations.length) {
-      return res.json({ success: true, data: [] });
+      return res.json({ success: true, data: [], pagination: { page: 1, limit, total: 0, totalPages: 0 } });
     }
 
-    const products = await prisma.product.findMany({
-      where: { organisationId: organisations[0].id }
-    });
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({
+        where: { organisationId: organisations[0].id },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.product.count({ where: { organisationId: organisations[0].id } })
+    ]);
 
-    res.json({ success: true, data: products });
+    res.json({ 
+      success: true, 
+      data: products,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+    });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch products' });
   }

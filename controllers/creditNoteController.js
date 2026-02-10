@@ -155,26 +155,39 @@ exports.createCreditNote = async (req, res) => {
 
 exports.getCreditNotes = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+
     const organisations = await prisma.organisation.findMany({
       where: { userId: req.userId },
       take: 1
     });
 
     if (!organisations.length) {
-      return res.json({ success: true, data: [] });
+      return res.json({ success: true, data: [], pagination: { page: 1, limit, total: 0, totalPages: 0 } });
     }
 
-    const creditNotes = await prisma.creditNote.findMany({
-      where: { organisationId: organisations[0].id },
-      include: {
-        items: true,
-        customer: true,
-        invoice: true
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+    const [creditNotes, total] = await Promise.all([
+      prisma.creditNote.findMany({
+        where: { organisationId: organisations[0].id },
+        include: {
+          items: true,
+          customer: true,
+          invoice: true
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.creditNote.count({ where: { organisationId: organisations[0].id } })
+    ]);
 
-    res.json({ success: true, data: creditNotes });
+    res.json({ 
+      success: true, 
+      data: creditNotes,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+    });
   } catch (error) {
     console.error('Get credit notes error:', error);
     res.status(500).json({ error: 'Failed to fetch credit notes' });
