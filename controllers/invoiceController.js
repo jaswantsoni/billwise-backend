@@ -93,18 +93,15 @@ exports.createInvoice = async (req, res) => {
     const isInterstate = orgState && billState && orgState !== billState;
 
     const year = new Date().getFullYear();
-    const lastInvoice = await prisma.invoice.findFirst({
-      where: { invoiceNumber: { startsWith: `INV-${year}-` } },
-      orderBy: { createdAt: 'desc' }
+    const prefix = organisation.invoicePrefix || 'INV';
+    const counter = organisation.invoiceCounter || 1;
+    const invoiceNumber = `${prefix}-${year}-${String(counter).padStart(3, '0')}`;
+    
+    // Update counter
+    await prisma.organisation.update({
+      where: { id: organisationId },
+      data: { invoiceCounter: counter + 1 }
     });
-
-    let invoiceNumber;
-    if (lastInvoice) {
-      const lastNumber = parseInt(lastInvoice.invoiceNumber.split('-')[2]);
-      invoiceNumber = `INV-${year}-${String(lastNumber + 1).padStart(3, '0')}`;
-    } else {
-      invoiceNumber = `INV-${year}-001`;
-    }
 
     let calculatedSubtotal = 0;
     let calculatedTotalTax = 0;

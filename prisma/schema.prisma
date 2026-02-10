@@ -56,6 +56,14 @@ model Organisation {
   signatureUrl      String?
   companySealUrl    String?
   
+  // Document Numbering
+  invoicePrefix     String?    @default("INV")
+  invoiceCounter    Int        @default(1)
+  creditNotePrefix  String?    @default("CN")
+  creditNoteCounter Int        @default(1)
+  debitNotePrefix   String?    @default("DN")
+  debitNoteCounter  Int        @default(1)
+  
   userId            String     @db.ObjectId
   user              User       @relation(fields: [userId], references: [id])
   customers         Customer[]

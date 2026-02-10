@@ -34,18 +34,14 @@ exports.createCreditNote = async (req, res) => {
 
     // Generate note number
     const year = new Date().getFullYear();
-    const lastNote = await prisma.creditNote.findFirst({
-      where: { noteNumber: { startsWith: `CN-${year}-` }, organisationId },
-      orderBy: { createdAt: 'desc' }
+    const prefix = organisation.creditNotePrefix || 'CN';
+    const counter = organisation.creditNoteCounter || 1;
+    const noteNumber = `${prefix}-${year}-${String(counter).padStart(4, '0')}`;
+    
+    await prisma.organisation.update({
+      where: { id: organisationId },
+      data: { creditNoteCounter: counter + 1 }
     });
-
-    let noteNumber;
-    if (lastNote) {
-      const lastNumber = parseInt(lastNote.noteNumber.split('-')[2]);
-      noteNumber = `CN-${year}-${String(lastNumber + 1).padStart(4, '0')}`;
-    } else {
-      noteNumber = `CN-${year}-0001`;
-    }
 
     // Calculate totals
     let subtotal = 0;

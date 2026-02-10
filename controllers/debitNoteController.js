@@ -32,18 +32,14 @@ exports.createDebitNote = async (req, res) => {
     const isInterstate = orgState && invoiceState && orgState !== invoiceState;
 
     const year = new Date().getFullYear();
-    const lastNote = await prisma.debitNote.findFirst({
-      where: { noteNumber: { startsWith: `DN-${year}-` }, organisationId },
-      orderBy: { createdAt: 'desc' }
+    const prefix = organisation.debitNotePrefix || 'DN';
+    const counter = organisation.debitNoteCounter || 1;
+    const noteNumber = `${prefix}-${year}-${String(counter).padStart(4, '0')}`;
+    
+    await prisma.organisation.update({
+      where: { id: organisationId },
+      data: { debitNoteCounter: counter + 1 }
     });
-
-    let noteNumber;
-    if (lastNote) {
-      const lastNumber = parseInt(lastNote.noteNumber.split('-')[2]);
-      noteNumber = `DN-${year}-${String(lastNumber + 1).padStart(4, '0')}`;
-    } else {
-      noteNumber = `DN-${year}-0001`;
-    }
 
     let subtotal = 0;
     let totalTax = 0;
