@@ -56,6 +56,14 @@ model Organisation {
   signatureUrl      String?
   companySealUrl    String?
   
+  // Document Numbering
+  invoicePrefix     String?    @default("INV")
+  invoiceCounter    Int        @default(1)
+  creditNotePrefix  String?    @default("CN")
+  creditNoteCounter Int        @default(1)
+  debitNotePrefix   String?    @default("DN")
+  debitNoteCounter  Int        @default(1)
+  
   userId            String     @db.ObjectId
   user              User       @relation(fields: [userId], references: [id])
   customers         Customer[]
@@ -74,6 +82,8 @@ model Customer {
   organisation   Organisation @relation(fields: [organisationId], references: [id])
   addresses      Address[]
   invoices       Invoice[]
+  creditNotes    CreditNote[]
+  debitNotes     DebitNote[]
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 }
@@ -105,10 +115,13 @@ model Product {
   unit           String
   price          Float
   taxRate        Float
+  taxInclusive   Boolean       @default(false)
   currency       String        @default("INR")
   organisationId String        @db.ObjectId
   organisation   Organisation  @relation(fields: [organisationId], references: [id])
   invoiceItems   InvoiceItem[]
+  creditNoteItems CreditNoteItem[] @relation("CreditNoteProducts")
+  debitNoteItems  DebitNoteItem[]  @relation("DebitNoteProducts")
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -137,8 +150,11 @@ model Invoice {
   cess               Float         @default(0)
   roundOff           Float         @default(0)
   deliveryCharges    Float         @default(0)
-  packingCharges     Float         @default(0)
+  freightCharges     Float         @default(0)
   otherCharges       Float         @default(0)
+  deliveryChargesTax Float         @default(0)
+  freightChargesTax  Float         @default(0)
+  otherChargesTax    Float         @default(0)
   totalTax           Float
   total              Float
   amountInWords      String?
@@ -182,6 +198,8 @@ model Invoice {
   status             String        @default("DRAFT")
   organisationId     String        @db.ObjectId
   items              InvoiceItem[]
+  creditNotes        CreditNote[]
+  debitNotes         DebitNote[]
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
@@ -197,10 +215,13 @@ model InvoiceItem {
   description String
   hsnSac      String?
   quantity    Float
+  creditedQty Float    @default(0)
+  debitedQty  Float    @default(0)
   unit        String   @default("PCS")
   rate        Float
   discount    Float    @default(0)
   taxRate     Float
+  taxInclusive Boolean @default(false)
   cgst        Float    @default(0)
   sgst        Float    @default(0)
   igst        Float    @default(0)
@@ -208,6 +229,119 @@ model InvoiceItem {
   taxAmount   Float
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Subscription {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id])
+  
+  productCode   String
+  tier          String
+  interval      String
+  amount        Float
+  
+  paymentId     String
+  orderId       String?
+  
+  status        String   @default("active")
+  startDate     DateTime @default(now())
+  endDate       DateTime
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model CreditNote {
+  id             String           @id @default(auto()) @map("_id") @db.ObjectId
+  noteNumber     String           @unique
+  invoiceId      String           @db.ObjectId
+  invoice        Invoice          @relation(fields: [invoiceId], references: [id])
+  customerId     String           @db.ObjectId
+  customer       Customer         @relation(fields: [customerId], references: [id])
+  issueDate      DateTime
+  reason         String?
+  subtotal       Float
+  cgst           Float            @default(0)
+  sgst           Float            @default(0)
+  igst           Float            @default(0)
+  totalTax       Float
+  totalAmount    Float
+  status         String           @default("DRAFT")
+  organisationId String           @db.ObjectId
+  items          CreditNoteItem[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([organisationId, noteNumber])
+}
+
+model CreditNoteItem {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  creditNoteId  String     @db.ObjectId
+  creditNote    CreditNote @relation(fields: [creditNoteId], references: [id])
+  productId     String     @db.ObjectId
+  product       Product    @relation("CreditNoteProducts", fields: [productId], references: [id])
+  invoiceItemId String?    @db.ObjectId
+  description   String
+  hsnSac        String?
+  quantity      Float
+  unit          String
+  rate          Float
+  taxRate       Float
+  cgst          Float      @default(0)
+  sgst          Float      @default(0)
+  igst          Float      @default(0)
+  lineTotal     Float
+  taxAmount     Float
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model DebitNote {
+  id             String          @id @default(auto()) @map("_id") @db.ObjectId
+  noteNumber     String          @unique
+  invoiceId      String          @db.ObjectId
+  invoice        Invoice         @relation(fields: [invoiceId], references: [id])
+  customerId     String          @db.ObjectId
+  customer       Customer        @relation(fields: [customerId], references: [id])
+  issueDate      DateTime
+  reason         String?
+  subtotal       Float
+  cgst           Float           @default(0)
+  sgst           Float           @default(0)
+  igst           Float           @default(0)
+  totalTax       Float
+  totalAmount    Float
+  status         String          @default("DRAFT")
+  organisationId String          @db.ObjectId
+  items          DebitNoteItem[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@unique([organisationId, noteNumber])
+}
+
+model DebitNoteItem {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  debitNoteId   String    @db.ObjectId
+  debitNote     DebitNote @relation(fields: [debitNoteId], references: [id])
+  productId     String    @db.ObjectId
+  product       Product   @relation("DebitNoteProducts", fields: [productId], references: [id])
+  invoiceItemId String?   @db.ObjectId
+  description   String
+  hsnSac        String?
+  quantity      Float
+  unit          String
+  rate          Float
+  taxRate       Float
+  cgst          Float     @default(0)
+  sgst          Float     @default(0)
+  igst          Float     @default(0)
+  lineTotal     Float
+  taxAmount     Float
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model Subscription {

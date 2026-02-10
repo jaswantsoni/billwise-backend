@@ -158,6 +158,6 @@ router.get('/', authenticate, organisationController.getOrganisations);
  */
 
 router.put('/:id', authenticate, organisationController.updateOrganisation);
-
+router.put('/:id/document-settings', authenticate, organisationController.updateDocumentSettings);
 
 module.exports = router;

@@ -33,8 +33,11 @@ exports.createInvoice = async (req, res) => {
       paymentMethod,
       paymentTerms,
       deliveryCharges,
-      packingCharges,
-      otherCharges
+      freightCharges,
+      otherCharges,
+      deliveryChargesTaxRate,
+      freightChargesTaxRate,
+      otherChargesTaxRate
     } = req.body;
 
     const organisations = await prisma.organisation.findMany({
@@ -90,18 +93,15 @@ exports.createInvoice = async (req, res) => {
     const isInterstate = orgState && billState && orgState !== billState;
 
     const year = new Date().getFullYear();
-    const lastInvoice = await prisma.invoice.findFirst({
-      where: { invoiceNumber: { startsWith: `INV-${year}-` }, organisationId },
-      orderBy: { createdAt: 'desc' }
+    const prefix = organisation.invoicePrefix || 'INV';
+    const counter = organisation.invoiceCounter || 1;
+    const invoiceNumber = `${prefix}-${year}-${String(counter).padStart(3, '0')}`;
+    
+    // Update counter
+    await prisma.organisation.update({
+      where: { id: organisationId },
+      data: { invoiceCounter: counter + 1 }
     });
-
-    let invoiceNumber;
-    if (lastInvoice) {
-      const lastNumber = parseInt(lastInvoice.invoiceNumber.split('-')[2]);
-      invoiceNumber = `INV-${year}-${String(lastNumber + 1).padStart(3, '0')}`;
-    } else {
-      invoiceNumber = `INV-${year}-001`;
-    }
 
     let calculatedSubtotal = 0;
     let calculatedTotalTax = 0;
@@ -111,8 +111,25 @@ exports.createInvoice = async (req, res) => {
 
     const validatedItems = await Promise.all(items.map(async item => {
       const product = await prisma.product.findUnique({ where: { id: item.productId } });
-      const itemAmount = item.quantity * item.rate;
-      const itemTaxAmount = itemAmount * (item.taxRate / 100);
+      
+      // Allow custom rate per invoice item (flexible pricing)
+      const itemRate = item.rate;
+      const itemTaxRate = item.taxRate;
+      const isTaxInclusive = item.taxInclusive !== undefined ? item.taxInclusive : false;
+      
+      let itemAmount, itemTaxAmount;
+      
+      if (isTaxInclusive) {
+        // Price includes tax - extract tax from total
+        const totalWithTax = item.quantity * itemRate;
+        itemAmount = totalWithTax / (1 + itemTaxRate / 100);
+        itemTaxAmount = totalWithTax - itemAmount;
+      } else {
+        // Price excludes tax - add tax on top
+        itemAmount = item.quantity * itemRate;
+        itemTaxAmount = itemAmount * (itemTaxRate / 100);
+      }
+      
       calculatedSubtotal += itemAmount;
       calculatedTotalTax += itemTaxAmount;
 
@@ -133,9 +150,10 @@ exports.createInvoice = async (req, res) => {
         hsnSac: item.hsnSac || product?.hsnCode || product?.sacCode || '',
         quantity: item.quantity,
         unit: item.unit || product?.unit || 'PCS',
-        rate: item.rate,
+        rate: itemRate,
         discount: item.discount || 0,
-        taxRate: item.taxRate,
+        taxRate: itemTaxRate,
+        taxInclusive: isTaxInclusive,
         cgst,
         sgst,
         igst,
@@ -144,7 +162,24 @@ exports.createInvoice = async (req, res) => {
       };
     }));
 
-    const calculatedTotal = calculatedSubtotal + calculatedTotalTax + (deliveryCharges || 0) + (packingCharges || 0) + (otherCharges || 0);
+    // Calculate tax on extra charges
+    const deliveryTax = (deliveryCharges || 0) * ((deliveryChargesTaxRate || 0) / 100);
+    const freightTax = (freightCharges || 0) * ((freightChargesTaxRate || 0) / 100);
+    const otherTax = (otherCharges || 0) * ((otherChargesTaxRate || 0) / 100);
+    const totalChargesTax = deliveryTax + freightTax + otherTax;
+    
+    if (totalChargesTax > 0) {
+      if (isInterstate) {
+        totalIGST += totalChargesTax;
+      } else {
+        totalCGST += totalChargesTax / 2;
+        totalSGST += totalChargesTax / 2;
+      }
+      calculatedTotalTax += totalChargesTax;
+    }
+
+    const extraCharges = (deliveryCharges || 0) + (freightCharges || 0) + (otherCharges || 0);
+    const calculatedTotal = calculatedSubtotal + calculatedTotalTax + extraCharges;
 
     const invoice = await prisma.invoice.create({
       data: {
@@ -163,8 +198,11 @@ exports.createInvoice = async (req, res) => {
         sgst: totalSGST,
         igst: totalIGST,
         deliveryCharges: deliveryCharges || 0,
-        packingCharges: packingCharges || 0,
+        freightCharges: freightCharges || 0,
         otherCharges: otherCharges || 0,
+        deliveryChargesTax: deliveryTax,
+        freightChargesTax: freightTax,
+        otherChargesTax: otherTax,
         totalTax: calculatedTotalTax,
         total: calculatedTotal,
         balanceAmount: calculatedTotal,
@@ -208,6 +246,10 @@ exports.createInvoice = async (req, res) => {
 
 exports.getInvoices = async (req, res) => {
   let organisationId =  req.query.organisationId;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 50;
+  const skip = (page - 1) * limit;
+
   try {
     const organisations = await prisma.organisation.findMany({
       where: { userId: req.userId },
@@ -215,19 +257,32 @@ exports.getInvoices = async (req, res) => {
     });
 
     if (!organisations.length) {
-      return res.json({ success: true, data: [] });
+      return res.json({ success: true, data: [], pagination: { page: 1, limit, total: 0, totalPages: 0 } });
     }
 
-    const invoices = await prisma.invoice.findMany({
-      where: { organisationId: organisationId??organisations[0].id },
-      include: {
-        items: true,
-        customer: true
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+    const orgId = organisationId ?? organisations[0].id;
 
-    res.json({ success: true, data: invoices });
+    const [invoices, total] = await Promise.all([
+      prisma.invoice.findMany({
+        where: { organisationId: orgId },
+        include: {
+          items: true,
+          customer: true,
+          creditNotes: { where: { status: { not: 'CANCELLED' } } },
+          debitNotes: { where: { status: { not: 'CANCELLED' } } }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.invoice.count({ where: { organisationId: orgId } })
+    ]);
+
+    res.json({ 
+      success: true, 
+      data: invoices,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+    });
   } catch (error) {
     console.error('Get invoices error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch invoices', details: error.message });
@@ -259,6 +314,14 @@ exports.getInvoice = async (req, res) => {
           include: {
             addresses: true
           }
+        },
+        creditNotes: {
+          where: { status: { not: 'CANCELLED' } },
+          include: { items: true }
+        },
+        debitNotes: {
+          where: { status: { not: 'CANCELLED' } },
+          include: { items: true }
         }
       }
     });

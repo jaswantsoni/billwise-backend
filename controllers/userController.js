@@ -20,7 +20,6 @@ exports.getProfile = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Check if expired
     if (user.planExpiry && new Date(user.planExpiry) < new Date()) {
       await prisma.user.update({
         where: { id: req.userId },
@@ -48,5 +47,46 @@ exports.getProfile = async (req, res) => {
   } catch (error) {
     console.error('[GET PROFILE] Error:', error);
     res.status(500).json({ error: 'Failed to fetch profile' });
+  }
+};
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, email } = req.body;
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (email && email !== user.email) {
+      const existingUser = await prisma.user.findUnique({ where: { email } });
+      if (existingUser) {
+        return res.status(400).json({ error: 'Email already in use' });
+      }
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: req.userId },
+      data: { name, email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        planTier: true,
+        planInterval: true,
+        planStatus: true,
+        planExpiry: true,
+        createdAt: true
+      }
+    });
+
+    res.json({ success: true, user: updatedUser });
+  } catch (error) {
+    console.error('[UPDATE PROFILE] Error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
   }
 };

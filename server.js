@@ -13,10 +13,10 @@ const customerRoutes = require('./routes/customer');
 const productRoutes = require('./routes/product');
 const addressRoutes = require('./routes/address');
 const invoiceRoutes = require('./routes/invoice');
+const creditNoteRoutes = require('./routes/creditNote');
+const debitNoteRoutes = require('./routes/debitNote');
 const subscriptionRoutes = require('./routes/subscription');
 const userRoutes = require('./routes/user');
-const pdfController = require('./controllers/pdfController');
-const { startExpiryCheck } = require('./services/cronJobs');
 
 const hsnRoutes = require('./routes/hsn');
 
@@ -52,6 +52,8 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/addresses', addressRoutes);
 app.use('/api/invoices', invoiceRoutes);
+app.use('/api/credit-notes', creditNoteRoutes);
+app.use('/api/debit-notes', debitNoteRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/hsn', hsnRoutes);
