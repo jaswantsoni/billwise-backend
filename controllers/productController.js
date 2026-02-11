@@ -13,21 +13,52 @@ exports.createProduct = async (req, res) => {
       return res.status(400).json({ error: 'No organisation found for user' });
     }
 
-    const product = await prisma.product.create({
-      data: {
-        name,
-        description: description || '',
-        sku,
-        hsnCode: hsnCode || '',
-        sacCode: sacCode || '',
-        unit,
-        price,
-        taxRate,
-        currency: currency || 'INR',
-        taxInclusive: taxInclusive || false,
-        organisationId: organisations[0].id
+    // Check if product with same SKU exists (including deleted)
+    const existingProduct = await prisma.product.findUnique({
+      where: {
+        organisationId_sku: {
+          organisationId: organisations[0].id,
+          sku: sku
+        }
       }
     });
+
+    let product;
+    if (existingProduct) {
+      // Restore and update the product
+      product = await prisma.product.update({
+        where: { id: existingProduct.id },
+        data: {
+          name,
+          description: description || '',
+          hsnCode: hsnCode || '',
+          sacCode: sacCode || '',
+          unit,
+          price,
+          taxRate,
+          currency: currency || 'INR',
+          taxInclusive: taxInclusive || false,
+          isActive: true,
+        }
+      });
+    } else {
+      // Create new product
+      product = await prisma.product.create({
+        data: {
+          name,
+          description: description || '',
+          sku,
+          hsnCode: hsnCode || '',
+          sacCode: sacCode || '',
+          unit,
+          price,
+          taxRate,
+          currency: currency || 'INR',
+          taxInclusive: taxInclusive || false,
+          organisationId: organisations[0].id
+        }
+      });
+    }
 
     res.json({ success: true, data: product });
   } catch (error) {
@@ -53,12 +84,20 @@ exports.getProducts = async (req, res) => {
 
     const [products, total] = await Promise.all([
       prisma.product.findMany({
-        where: { organisationId: organisations[0].id },
+        where: { 
+          organisationId: organisations[0].id,
+          isActive: true
+        },
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' }
       }),
-      prisma.product.count({ where: { organisationId: organisations[0].id } })
+      prisma.product.count({ 
+        where: { 
+          organisationId: organisations[0].id,
+          isActive: true
+        }
+      })
     ]);
 
     res.json({ 
@@ -103,6 +142,7 @@ exports.searchProducts = async (req, res) => {
     const products = await prisma.product.findMany({
       where: {
         organisationId: organisations[0].id,
+        isActive: true,
         OR: [
           { name: { contains: query, mode: 'insensitive' } },
           { sku: { contains: query, mode: 'insensitive' } },
@@ -122,8 +162,9 @@ exports.deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
 
-    await prisma.product.delete({
-      where: { id }
+    await prisma.product.update({
+      where: { id },
+      data: { isActive: false }
     });
 
     res.json({ success: true, message: 'Product deleted successfully' });

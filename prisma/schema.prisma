@@ -117,6 +117,7 @@ model Product {
   taxRate        Float
   taxInclusive   Boolean       @default(false)
   currency       String        @default("INR")
+  isActive       Boolean       @default(true)
   organisationId String        @db.ObjectId
   organisation   Organisation  @relation(fields: [organisationId], references: [id])
   invoiceItems   InvoiceItem[]
