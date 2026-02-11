@@ -4,7 +4,7 @@ const multer = require('multer');
 const productController = require('../controllers/productController');
 const { authenticate } = require('../middleware/auth');
 
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ storage: multer.memoryStorage() });
 
 /**
  * @swagger

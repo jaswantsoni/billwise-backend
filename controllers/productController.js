@@ -149,7 +149,11 @@ exports.bulkUploadProducts = async (req, res) => {
       return res.status(400).json({ error: 'No organisation found for user' });
     }
 
-    const productsData = await parseExcelFile(file.path);
+    const xlsx = require('xlsx');
+    const workbook = xlsx.read(file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const productsData = xlsx.utils.sheet_to_json(sheet);
     console.log('Parsed products data:', productsData);
 
     const productsToCreate = productsData.map(p => ({
@@ -175,13 +179,5 @@ exports.bulkUploadProducts = async (req, res) => {
     console.error('Bulk upload error:', error);
     res.status(500).json({ error: 'Failed to upload products', details: error.message });
   }
-};
-
-async function parseExcelFile(filePath) {
-  const xlsx = require('xlsx');
-  const workbook = xlsx.readFile(filePath);
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  return xlsx.utils.sheet_to_json(sheet);
-} 
+}; 
 
