@@ -1,7 +1,48 @@
 const prisma = require('../config/prisma');
 
-exports.createOrganisation = async (req, res) => {
+exports.createOrganisation = async (req, res, next) => {
   try {
+    const { 
+      name, 
+      tradeName,
+      gstin, 
+      pan,
+      address, 
+      city,
+      state,
+      stateCode,
+      pincode,
+      phone, 
+      email
+    } = req.body;
+
+    // Validate required fields
+    if (!name || !address || !phone || !email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields',
+        required: ['name', 'address', 'phone', 'email']
+      });
+    }
+
+    // Validate GSTIN format if provided
+    if (gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gstin)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid GSTIN format',
+        field: 'gstin'
+      });
+    }
+
+    // Validate PAN format if provided
+    if (pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid PAN format',
+        field: 'pan'
+      });
+    }
+
     // Check existing organisations count
     const existingCount = await prisma.organisation.count({
       where: { userId: req.userId }
@@ -20,7 +61,8 @@ exports.createOrganisation = async (req, res) => {
 
       if (!isPremium) {
         return res.status(403).json({
-          error: 'Premium plan required',
+          success: false,
+          error: 'Premium plan required for multiple businesses',
           requiresUpgrade: true,
           currentPlan: user.planTier || 'free',
           requiredPlan: 'premium',
@@ -28,30 +70,6 @@ exports.createOrganisation = async (req, res) => {
         });
       }
     }
-
-    const { 
-      name, 
-      tradeName,
-      gstin, 
-      pan,
-      address, 
-      city,
-      state,
-      stateCode,
-      pincode,
-      phone, 
-      email,
-      logo,
-      bankName,
-      branch,
-      accountHolderName,
-      accountNumber,
-      ifsc,
-      upi,
-      authorizedSignatory,
-      signatureUrl,
-      companySealUrl
-    } = req.body;
 
     const organisation = await prisma.organisation.create({
       data: {
@@ -66,30 +84,27 @@ exports.createOrganisation = async (req, res) => {
         pincode,
         phone,
         email,
-        logo,
-        bankName,
-        branch,
-        accountHolderName,
-        accountNumber,
-        ifsc,
-        upi,
-        authorizedSignatory,
-        signatureUrl,
-        companySealUrl,
+        logo: req.body.logo,
+        bankName: req.body.bankName,
+        branch: req.body.branch,
+        accountHolderName: req.body.accountHolderName,
+        accountNumber: req.body.accountNumber,
+        ifsc: req.body.ifsc,
+        upi: req.body.upi,
+        authorizedSignatory: req.body.authorizedSignatory,
+        signatureUrl: req.body.signatureUrl,
+        companySealUrl: req.body.companySealUrl,
         userId: req.userId
       }
     });
 
     res.json({ success: true, data: organisation });
   } catch (error) {
-    if (error.code === 'P2002' && error.meta?.target?.includes('gstin')) {
-      return res.status(400).json({ error: 'GSTIN already registered with another organisation' });
-    }
-    res.status(500).json({ error: 'Failed to create organisation' });
+    next(error);
   }
 };
 
-exports.getOrganisations = async (req, res) => {
+exports.getOrganisations = async (req, res, next) => {
   try {
     const organisations = await prisma.organisation.findMany({
       where: { userId: req.userId }
@@ -162,14 +177,32 @@ exports.getOrganisations = async (req, res) => {
 
     res.json({ success: true, data: organisations });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch organisations' });
+    next(error);
   }
 };
 
-exports.updateOrganisation = async (req, res) => {
+exports.updateOrganisation = async (req, res, next) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
+
+    // Validate GSTIN format if being updated
+    if (updateData.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(updateData.gstin)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid GSTIN format',
+        field: 'gstin'
+      });
+    }
+
+    // Validate PAN format if being updated
+    if (updateData.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(updateData.pan)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid PAN format',
+        field: 'pan'
+      });
+    }
 
     const organisation = await prisma.organisation.update({
       where: { id },
@@ -178,11 +211,11 @@ exports.updateOrganisation = async (req, res) => {
 
     res.json({ success: true, data: organisation });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update organisation' });
+    next(error);
   }
 };
 
-exports.updateDocumentSettings = async (req, res) => {
+exports.updateDocumentSettings = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { invoicePrefix, invoiceCounter, creditNotePrefix, creditNoteCounter, debitNotePrefix, debitNoteCounter } = req.body;
@@ -209,7 +242,6 @@ exports.updateDocumentSettings = async (req, res) => {
 
     res.json({ success: true, data: updated });
   } catch (error) {
-    console.error('Update document settings error:', error);
-    res.status(500).json({ success: false, error: 'Failed to update document settings', details: error.message });
+    next(error);
   }
 };

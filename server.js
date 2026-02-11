@@ -21,8 +21,10 @@ const subscriptionRoutes = require('./routes/subscription');
 const userRoutes = require('./routes/user');
 const pdfController = require('./controllers/pdfController');
 const { startExpiryCheck } = require('./services/cronJobs');
+const errorHandler = require('./middleware/errorHandler');
 
 const hsnRoutes = require('./routes/hsn');
+const ifscRoutes = require('./routes/ifsc');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -72,8 +74,12 @@ app.use('/api/debit-notes', debitNoteRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/hsn', hsnRoutes);
+app.use('/api/ifsc', ifscRoutes);
 
 app.get('/public/invoice/:id/:signature', pdfController.getInvoicePDFPublic);
+
+// Error handler middleware (must be last)
+app.use(errorHandler);
 
 // Start cron jobs
 startExpiryCheck();
