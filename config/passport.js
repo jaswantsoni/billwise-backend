@@ -16,6 +16,12 @@ passport.use(
         });
 
         if (!user) {
+          const trialEndDate = new Date();
+          trialEndDate.setDate(trialEndDate.getDate() + 15);
+
+          const trialExpiry = new Date();
+          trialExpiry.setDate(trialExpiry.getDate() + 15);
+
           user = await prisma.user.create({
             data: {
               googleId: profile.id,
