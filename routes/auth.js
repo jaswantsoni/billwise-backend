@@ -79,4 +79,8 @@ router.get('/google/callback',
   }
 );
 
+router.post('/forgot-password', authController.sendPasswordResetOTP);
+router.post('/reset-password', authController.verifyOTPAndResetPassword);
+router.post('/set-password', authController.setPasswordForGoogleUser);
+
 module.exports = router;

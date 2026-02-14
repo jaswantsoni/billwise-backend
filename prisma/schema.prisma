@@ -13,6 +13,8 @@ model User {
   name          String
   password      String?
   googleId      String?
+  resetOTP      String?
+  resetOTPExpiry DateTime?
   
   // Subscription
   planTier      String?        @default("free")
