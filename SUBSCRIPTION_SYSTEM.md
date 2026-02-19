@@ -63,8 +63,6 @@ When a user registers via `POST /auth/register`:
 POST /api/eway/generate
 GET /api/eway/:ewbNo
 POST /api/eway/cancel/:ewbNo
-GET /api/gst/:gstin
-GET /api/hsn/search
 POST /api/organisations (2nd onwards)
 ```
 

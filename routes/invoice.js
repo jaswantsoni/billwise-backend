@@ -209,6 +209,7 @@ router.get('/:id/pdf', authenticate, pdfController.generateInvoicePDF);
  *       200:
  *         description: Invoice sent successfully
  */
-router.post('/:id/send', authenticate, emailController.sendInvoiceByEmail);
+// TODO: Implement sendInvoiceByEmail function
+// router.post('/:id/send', authenticate, emailController.sendInvoiceByEmail);
 
 module.exports = router;

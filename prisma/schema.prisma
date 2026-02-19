@@ -16,6 +16,11 @@ model User {
   resetOTP      String?
   resetOTPExpiry DateTime?
   
+  // Gmail OAuth
+  gmailAccessToken  String?
+  gmailRefreshToken String?
+  gmailTokenExpiry  DateTime?
+  
   // Subscription
   planTier      String?        @default("free")
   planInterval  String?
@@ -363,4 +368,32 @@ model HSNCode {
   taxDetails    Json?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+model EmailTemplate {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String   @unique
+  subject     String
+  html        String
+  variables   Json
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EmailLog {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId           String   @db.ObjectId
+  toEmail          String
+  subject          String
+  html             String
+  templateId       String?  @db.ObjectId
+  variables        Json?
+  status           String   @default("draft")
+  gmailMessageId   String?
+  errorMessage     String?
+  sentAt           DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }

@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const axios = require('axios');
+const { sendInvoiceEmailAuto } = require('./emailHelpers');
 
 const GOTENBERG_URL = process.env.GOTENBERG_URL || 'http://localhost:3001';
 
@@ -254,6 +255,21 @@ exports.createInvoice = async (req, res) => {
     });
 
     res.json({ success: true, data: invoice });
+
+    // Send email asynchronously (non-blocking)
+    if (customer.email) {
+      sendInvoiceEmailAuto(req.userId, {
+        invoiceId: invoice.id,
+        customerName: customer.name,
+        customerEmail: customer.email,
+        companyName: organisation.name,
+        invoiceNumber: invoice.invoiceNumber,
+        invoiceDate: new Date(invoice.invoiceDate).toLocaleDateString('en-IN'),
+        dueDate: new Date(invoice.dueDate).toLocaleDateString('en-IN'),
+        total: invoice.total,
+        id: invoice.id,
+      }).catch(err => console.error('Failed to send invoice email:', err));
+    }
   } catch (error) {
     console.error('Invoice creation error:', error);
     res.status(500).json({ success: false, error: 'Failed to create invoice', details: error.message });

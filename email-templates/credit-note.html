@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Credit Note {{credit_note_no}}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 30px; text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px;">{{company_name}}</h1>
+              <p style="margin: 10px 0 0; color: #ffffff; font-size: 14px; opacity: 0.9;">Credit Note</p>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="margin: 0 0 20px; font-size: 16px; color: #333;">Dear {{customer_name}},</p>
+              
+              <p style="margin: 0 0 30px; font-size: 14px; color: #666; line-height: 1.6;">
+                A credit note has been issued for your account. Please find the details below:
+              </p>
+
+              <!-- Credit Note Details -->
+              <table width="100%" cellpadding="12" cellspacing="0" style="background-color: #f0f9ff; border-radius: 6px; margin-bottom: 30px; border: 1px solid #bfdbfe;">
+                <tr>
+                  <td style="font-size: 14px; color: #666; border-bottom: 1px solid #bfdbfe;">Credit Note Number:</td>
+                  <td style="font-size: 14px; color: #333; font-weight: bold; text-align: right; border-bottom: 1px solid #bfdbfe;">{{credit_note_no}}</td>
+                </tr>
+                <tr>
+                  <td style="font-size: 14px; color: #666; border-bottom: 1px solid #bfdbfe;">Original Invoice:</td>
+                  <td style="font-size: 14px; color: #333; text-align: right; border-bottom: 1px solid #bfdbfe;">{{invoice_no}}</td>
+                </tr>
+                <tr>
+                  <td style="font-size: 14px; color: #666; border-bottom: 1px solid #bfdbfe;">Date:</td>
+                  <td style="font-size: 14px; color: #333; text-align: right; border-bottom: 1px solid #bfdbfe;">{{credit_note_date}}</td>
+                </tr>
+                <tr>
+                  <td style="font-size: 14px; color: #666; border-bottom: 1px solid #bfdbfe;">Reason:</td>
+                  <td style="font-size: 14px; color: #333; text-align: right; border-bottom: 1px solid #bfdbfe;">{{reason}}</td>
+                </tr>
+                <tr>
+                  <td style="font-size: 16px; color: #333; font-weight: bold; padding-top: 10px;">Credit Amount:</td>
+                  <td style="font-size: 20px; color: #0284c7; font-weight: bold; text-align: right; padding-top: 10px;">₹{{amount}}</td>
+                </tr>
+              </table>
+
+              <!-- CTA Button -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 30px;">
+                <tr>
+                  <td align="center">
+                    <a href="{{credit_note_link}}" style="display: inline-block; padding: 14px 40px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: bold;">View Credit Note</a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 0 0 10px; font-size: 14px; color: #666; line-height: 1.6;">
+                This credit will be applied to your account. If you have any questions, please contact us.
+              </p>
+
+              <p style="margin: 0; font-size: 14px; color: #666;">
+                Best regards,<br>
+                <strong style="color: #333;">{{company_name}}</strong>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+              <p style="margin: 0 0 8px; font-size: 12px; color: #999; text-align: center;">Powered by <a href="https://www.kampony.com" style="color: #667eea; text-decoration: none; font-weight: 600;">Kampony</a> - GST Billing Software</p>
+              <p style="margin: 0; font-size: 12px; color: #999;">
+                This is an automated email. Please do not reply to this message.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

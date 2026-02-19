@@ -25,6 +25,8 @@ const errorHandler = require('./middleware/errorHandler');
 
 const hsnRoutes = require('./routes/hsn');
 const ifscRoutes = require('./routes/ifsc');
+const gmailRoutes = require('./routes/gmail');
+const emailRoutes = require('./routes/email');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -75,6 +77,8 @@ app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/hsn', hsnRoutes);
 app.use('/api/ifsc', ifscRoutes);
+app.use('/api/gmail', gmailRoutes);
+app.use('/api/email', emailRoutes);
 
 app.get('/public/invoice/:id/:signature', pdfController.getInvoicePDFPublic);
 
