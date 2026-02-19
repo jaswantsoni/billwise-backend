@@ -43,9 +43,28 @@ cron.schedule('*/10 * * * *', async () => {
 });
 
 app.use(cors({
-  origin: ['http://localhost:8080', 'http://localhost:5173', 'http://localhost:3000', process.env.FRONTEND_URL].filter(Boolean),
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:8080',
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://www.kampony.com',
+      'https://kampony.com',
+      process.env.FRONTEND_URL
+    ].filter(Boolean);
+    
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
-  exposedHeaders: ['X-GST-Cookie']
+  exposedHeaders: ['X-GST-Cookie'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-GST-Cookie']
 }));
 app.use(express.json());
 app.use(express.static('public'));
