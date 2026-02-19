@@ -397,3 +397,46 @@ model EmailLog {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
+
+model MailTemplate {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  subject         String
+  category        String
+  preview         String?
+  tags            String[]
+  blocks          Json?
+  htmlContent     String?
+  variables       Json?
+  isPublic        Boolean  @default(false)
+  isInternal      Boolean  @default(true)
+  linkedToBilling Boolean  @default(false)
+  billingType     String?
+  userId          String   @db.ObjectId
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([category])
+}
+
+model MailLog {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String   @db.ObjectId
+  templateId      String?  @db.ObjectId
+  recipients      String[]
+  subject         String
+  htmlContent     String
+  variables       Json?
+  status          String   @default("pending")
+  provider        String?
+  gmailMessageId  String?
+  errorMessage    String?
+  sentAt          DateTime?
+  scheduledFor    DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}

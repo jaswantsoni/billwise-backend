@@ -69,13 +69,41 @@ router.post('/login', authController.login);
  *       302:
  *         description: Redirect to Google
  */
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+router.get('/google', (req, res, next) => {
+  const redirect = req.query.redirect;
+  const callbackURL = redirect === 'mailer' 
+    ? process.env.MAILER_GOOGLE_CALLBACK_URL 
+    : process.env.GOOGLE_CALLBACK_URL;
+  
+  passport.authenticate('google', { 
+    scope: ['profile', 'email'],
+    callbackURL 
+  })(req, res, next);
+});
 
 router.get('/google/callback', 
-  passport.authenticate('google', { session: false }),
+  (req, res, next) => {
+    passport.authenticate('google', { 
+      session: false,
+      callbackURL: process.env.GOOGLE_CALLBACK_URL 
+    })(req, res, next);
+  },
   (req, res) => {
     const token = jwt.sign({ userId: req.user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/auth/callback?token=${token}`);
+  }
+);
+
+router.get('/google/mailer-callback', 
+  (req, res, next) => {
+    passport.authenticate('google', { 
+      session: false,
+      callbackURL: process.env.MAILER_GOOGLE_CALLBACK_URL 
+    })(req, res, next);
+  },
+  (req, res) => {
+    const token = jwt.sign({ userId: req.user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    res.redirect(`${process.env.MAILER_FRONTEND_URL || 'http://localhost:5173'}/dashboard?token=${token}`);
   }
 );
 

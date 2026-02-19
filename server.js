@@ -27,6 +27,8 @@ const hsnRoutes = require('./routes/hsn');
 const ifscRoutes = require('./routes/ifsc');
 const gmailRoutes = require('./routes/gmail');
 const emailRoutes = require('./routes/email');
+const mailerRoutes = require('./routes/mailer');
+const templateRoutes = require('./routes/template');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -98,6 +100,8 @@ app.use('/api/hsn', hsnRoutes);
 app.use('/api/ifsc', ifscRoutes);
 app.use('/api/gmail', gmailRoutes);
 app.use('/api/email', emailRoutes);
+app.use('/api/mailer', mailerRoutes);
+app.use('/api/templates', templateRoutes);
 
 app.get('/public/invoice/:id/:signature', pdfController.getInvoicePDFPublic);
 
