@@ -45,6 +45,7 @@ async function getTemplate(templateName) {
     'reminder': 'Payment Reminder - Invoice {{invoice_no}}',
     'credit-note': 'Credit Note {{credit_note_no}} from {{company_name}}',
     'purchase-order': 'Purchase Order {{po_no}} from {{company_name}}',
+    'subscriptionExpiring': 'Your {{planTier}} Subscription Expires in {{daysRemaining}} Days',
   };
   
   return {

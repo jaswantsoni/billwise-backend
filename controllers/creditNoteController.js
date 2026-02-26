@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const { sendCreditNoteEmail } = require('../utils/emailService');
 const { generateCreditNoteHTML } = require('../utils/noteTemplates');
+const stockService = require('../services/stockService');
 
 exports.createCreditNote = async (req, res) => {
   try {
@@ -135,6 +136,9 @@ exports.createCreditNote = async (req, res) => {
         });
       }
     }
+
+    // Restore stock for returned products
+    await stockService.updateStockOnCreditNote(validatedItems, organisationId, creditNote.id);
 
     if (sendEmail && invoice.customer.email) {
       try {

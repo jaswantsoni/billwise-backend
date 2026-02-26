@@ -8,27 +8,27 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(auto()) @map("_id") @db.ObjectId
-  email         String         @unique
-  name          String
-  password      String?
-  googleId      String?
-  resetOTP      String?
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  email          String    @unique
+  name           String
+  password       String?
+  googleId       String?
+  resetOTP       String?
   resetOTPExpiry DateTime?
-  
+
   // Gmail OAuth
   gmailAccessToken  String?
   gmailRefreshToken String?
   gmailTokenExpiry  DateTime?
-  
+
   // Subscription
-  planTier      String?        @default("free")
-  planInterval  String?
-  planStatus    String?        @default("inactive")
-  planExpiry    DateTime?
-  freeUsageCount Int           @default(0)
-  freeUsageLimit Int           @default(10)
-  
+  planTier       String?   @default("free")
+  planInterval   String?
+  planStatus     String?   @default("inactive")
+  planExpiry     DateTime?
+  freeUsageCount Int       @default(0)
+  freeUsageLimit Int       @default(10)
+
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   organisations Organisation[]
@@ -36,20 +36,20 @@ model User {
 }
 
 model Organisation {
-  id                String     @id @default(auto()) @map("_id") @db.ObjectId
-  name              String
-  tradeName         String?
-  gstin             String?    @unique
-  pan               String?
-  address           String
-  city              String?
-  state             String?
-  stateCode         String?
-  pincode           String?
-  phone             String
-  email             String
-  logo              String?
-  
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  tradeName String?
+  gstin     String? @unique
+  pan       String?
+  address   String
+  city      String?
+  state     String?
+  stateCode String?
+  pincode   String?
+  phone     String
+  email     String
+  logo      String?
+
   // Bank Details
   bankName          String?
   branch            String?
@@ -57,41 +57,159 @@ model Organisation {
   accountNumber     String?
   ifsc              String?
   upi               String?
-  
+
   // Legal
   authorizedSignatory String?
-  signatureUrl      String?
-  companySealUrl    String?
+  signatureUrl        String?
+  companySealUrl      String?
 
-  invoicePrefix     String     @default("INV")
-  invoiceCounter    Int        @default(1)
-  creditNotePrefix  String?    @default("CN")
-  creditNoteCounter Int        @default(1)
-  debitNotePrefix   String?    @default("DN")
-  debitNoteCounter  Int        @default(1)
-  
-  userId            String     @db.ObjectId
-  user              User       @relation(fields: [userId], references: [id])
-  customers         Customer[]
-  products          Product[]
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
+  invoicePrefix     String  @default("INV")
+  invoiceCounter    Int     @default(1)
+  invoiceFormat     String? @default("{PREFIX}/{YY}-{YY+1}/{###}")
+  creditNotePrefix  String? @default("CN")
+  creditNoteCounter Int     @default(1)
+  creditNoteFormat  String? @default("{PREFIX}/{YYYY}/{####}")
+  debitNotePrefix   String? @default("DN")
+  debitNoteCounter  Int     @default(1)
+  debitNoteFormat   String? @default("{PREFIX}/{YYYY}/{####}")
+
+  userId    String     @db.ObjectId
+  user      User       @relation(fields: [userId], references: [id])
+  customers Customer[]
+  products  Product[]
+  suppliers Supplier[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Supplier {
+  id             String  @id @default(auto()) @map("_id") @db.ObjectId
+  name           String
+  gstin          String?
+  mobile         String?
+  email          String?
+  address        String?
+  city           String?
+  state          String?
+  pincode        String?
+  openingBalance Float   @default(0)
+  paymentTerms   String?
+  isActive       Boolean @default(true)
+
+  organisationId String       @db.ObjectId
+  organisation   Organisation @relation(fields: [organisationId], references: [id])
+
+  purchases Purchase[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organisationId])
+  @@index([gstin])
+}
+
+model Purchase {
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
+  billNumber       String
+  invoiceNumber    String?
+  supplierId       String    @db.ObjectId
+  supplier         Supplier  @relation(fields: [supplierId], references: [id])
+  purchaseDate     DateTime
+  dueDate          DateTime?
+  paymentMode      String?
+  transportCharges Float     @default(0)
+
+  // Amounts
+  subtotal   Float
+  cgst       Float @default(0)
+  sgst       Float @default(0)
+  igst       Float @default(0)
+  totalTax   Float
+  grandTotal Float
+
+  // Payment tracking
+  paymentStatus String @default("UNPAID")
+  paidAmount    Float  @default(0)
+
+  status String  @default("DRAFT")
+  notes  String?
+
+  organisationId String         @db.ObjectId
+  items          PurchaseItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organisationId, billNumber])
+  @@index([organisationId])
+  @@index([supplierId])
+  @@index([purchaseDate])
+  @@index([status])
+}
+
+model PurchaseItem {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  purchaseId  String   @db.ObjectId
+  purchase    Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  productId   String   @db.ObjectId
+  product     Product  @relation(fields: [productId], references: [id])
+  description String
+  hsnSac      String?
+  quantity    Float
+  unit        String
+  rate        Float
+  discount    Float    @default(0)
+  taxRate     Float
+  cgst        Float    @default(0)
+  sgst        Float    @default(0)
+  igst        Float    @default(0)
+  taxAmount   Float
+  lineTotal   Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([purchaseId])
+  @@index([productId])
+}
+
+model StockTransaction {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  productId       String   @db.ObjectId
+  product         Product  @relation(fields: [productId], references: [id])
+  transactionType String
+  quantity        Float
+  referenceType   String?
+  referenceId     String?  @db.ObjectId
+  ratePerUnit     Float?
+  avgCostBefore   Float
+  avgCostAfter    Float
+  stockBefore     Float
+  stockAfter      Float
+  notes           String?
+  organisationId  String   @db.ObjectId
+  createdAt       DateTime @default(now())
+
+  @@index([productId])
+  @@index([organisationId])
+  @@index([transactionType])
+  @@index([createdAt])
+  @@index([referenceType, referenceId])
 }
 
 model Customer {
-  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
   name           String
   gstin          String?
   email          String?
   phone          String?
-  organisationId String    @db.ObjectId
+  organisationId String       @db.ObjectId
   organisation   Organisation @relation(fields: [organisationId], references: [id])
   addresses      Address[]
   invoices       Invoice[]
   creditNotes    CreditNote[]
   debitNotes     DebitNote[]
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 }
 
 model Address {
@@ -112,156 +230,160 @@ model Address {
 }
 
 model Product {
-  id             String        @id @default(auto()) @map("_id") @db.ObjectId
-  name           String
-  description    String?
-  sku            String
-  hsnCode        String?
-  sacCode        String?
-  unit           String
-  price          Float
-  purchasePrice  Float         @default(0)
-  taxRate        Float
-  taxInclusive   Boolean       @default(false)
-  currency       String        @default("INR")
-  isActive       Boolean       @default(true)
-  organisationId String        @db.ObjectId
-  organisation   Organisation  @relation(fields: [organisationId], references: [id])
-  invoiceItems   InvoiceItem[]
-  creditNoteItems CreditNoteItem[] @relation("CreditNoteProducts")
-  debitNoteItems  DebitNoteItem[]  @relation("DebitNoteProducts")
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id                String             @id @default(auto()) @map("_id") @db.ObjectId
+  name              String
+  description       String?
+  sku               String
+  hsnCode           String?
+  sacCode           String?
+  unit              String
+  price             Float
+  purchasePrice     Float              @default(0)
+  stockQuantity     Float              @default(0)
+  avgCost           Float              @default(0)
+  minStock          Float              @default(0)
+  taxRate           Float
+  taxInclusive      Boolean            @default(false)
+  currency          String             @default("INR")
+  isActive          Boolean            @default(true)
+  organisationId    String             @db.ObjectId
+  organisation      Organisation       @relation(fields: [organisationId], references: [id])
+  invoiceItems      InvoiceItem[]
+  creditNoteItems   CreditNoteItem[]   @relation("CreditNoteProducts")
+  debitNoteItems    DebitNoteItem[]    @relation("DebitNoteProducts")
+  purchaseItems     PurchaseItem[]
+  stockTransactions StockTransaction[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
   @@unique([organisationId, sku])
+  @@index([stockQuantity])
 }
 
 model Invoice {
-  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
-  invoiceNumber      String        
-  invoiceType        String        @default("TAX_INVOICE")
-  invoiceCopyType    String        @default("ORIGINAL")
-  customerId         String        @db.ObjectId
-  customer           Customer      @relation(fields: [customerId], references: [id])
-  billingAddressId   String?       @db.ObjectId
-  shippingAddressId  String?       @db.ObjectId
-  invoiceDate        DateTime
-  dueDate            DateTime
-  placeOfSupply      String?
-  reverseCharge      Boolean       @default(false)
-  
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  invoiceNumber     String
+  invoiceType       String   @default("TAX_INVOICE")
+  invoiceCopyType   String   @default("ORIGINAL")
+  customerId        String   @db.ObjectId
+  customer          Customer @relation(fields: [customerId], references: [id])
+  billingAddressId  String?  @db.ObjectId
+  shippingAddressId String?  @db.ObjectId
+  invoiceDate       DateTime
+  dueDate           DateTime
+  placeOfSupply     String?
+  reverseCharge     Boolean  @default(false)
+
   // Amounts
   subtotal           Float
-  cgst               Float         @default(0)
-  sgst               Float         @default(0)
-  igst               Float         @default(0)
-  cess               Float         @default(0)
-  roundOff           Float         @default(0)
-  deliveryCharges    Float         @default(0)
-  freightCharges     Float         @default(0)
-  otherCharges       Float         @default(0)
-  deliveryChargesTax Float         @default(0)
-  freightChargesTax  Float         @default(0)
-  otherChargesTax    Float         @default(0)
+  cgst               Float   @default(0)
+  sgst               Float   @default(0)
+  igst               Float   @default(0)
+  cess               Float   @default(0)
+  roundOff           Float   @default(0)
+  deliveryCharges    Float   @default(0)
+  freightCharges     Float   @default(0)
+  otherCharges       Float   @default(0)
+  deliveryChargesTax Float   @default(0)
+  freightChargesTax  Float   @default(0)
+  otherChargesTax    Float   @default(0)
   totalTax           Float
   total              Float
   amountInWords      String?
-  
+
   // Delivery & Transport
-  modeOfDelivery     String?       @default("IN_HAND")
-  vehicleNumber      String?
-  transportName      String?
-  lrNumber           String?
-  ewayBillNumber     String?
-  placeOfDelivery    String?
-  deliveryDate       DateTime?
-  freightTerms       String?       @default("PAID")
-  
+  modeOfDelivery  String?   @default("IN_HAND")
+  vehicleNumber   String?
+  transportName   String?
+  lrNumber        String?
+  ewayBillNumber  String?
+  placeOfDelivery String?
+  deliveryDate    DateTime?
+  freightTerms    String?   @default("PAID")
+
   // Payment
-  paymentStatus      String        @default("UNPAID")
-  paymentMethod      String?
-  paymentTerms       String?       @default("NET_30")
-  paidAmount         Float         @default(0)
-  balanceAmount      Float?
-  referenceNumber    String?
-  
+  paymentStatus   String  @default("UNPAID")
+  paymentMethod   String?
+  paymentTerms    String? @default("NET_30")
+  paidAmount      Float   @default(0)
+  balanceAmount   Float?
+  referenceNumber String?
+
   // Notes & Terms
-  notes              String?
-  termsConditions    String?
-  paymentInstructions String?
+  notes                String?
+  termsConditions      String?
+  paymentInstructions  String?
   deliveryInstructions String?
-  returnPolicy       String?
-  lateFeePolicy      String?
-  warrantyInfo       String?
-  supportContact     String?
-  declaration        String?
-  
+  returnPolicy         String?
+  lateFeePolicy        String?
+  warrantyInfo         String?
+  supportContact       String?
+  declaration          String?
+
   // Legal & Compliance
-  irn                String?
-  ackNumber          String?
-  ackDate            DateTime?
-  qrCodeData         String?
-  
+  irn        String?
+  ackNumber  String?
+  ackDate    DateTime?
+  qrCodeData String?
+
   // System
-  status             String        @default("DRAFT")
-  organisationId     String        @db.ObjectId
-  items              InvoiceItem[]
-  creditNotes        CreditNote[]
-  debitNotes         DebitNote[]
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  status         String        @default("DRAFT")
+  organisationId String        @db.ObjectId
+  items          InvoiceItem[]
+  creditNotes    CreditNote[]
+  debitNotes     DebitNote[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   @@unique([organisationId, invoiceNumber])
 }
 
 model InvoiceItem {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  invoiceId   String   @db.ObjectId
-  invoice     Invoice  @relation(fields: [invoiceId], references: [id])
-  productId   String   @db.ObjectId
-  product     Product  @relation(fields: [productId], references: [id])
-  description String
-  hsnSac      String?
-  quantity    Float
-  creditedQty Float    @default(0)
-  debitedQty  Float    @default(0)
-  unit        String   @default("PCS")
-  rate        Float
-  discount    Float    @default(0)
-  taxRate     Float
-  taxInclusive Boolean @default(false)
-  cgst        Float    @default(0)
-  sgst        Float    @default(0)
-  igst        Float    @default(0)
-  amount      Float
-  taxAmount   Float
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  invoiceId    String   @db.ObjectId
+  invoice      Invoice  @relation(fields: [invoiceId], references: [id])
+  productId    String   @db.ObjectId
+  product      Product  @relation(fields: [productId], references: [id])
+  description  String
+  hsnSac       String?
+  quantity     Float
+  creditedQty  Float    @default(0)
+  debitedQty   Float    @default(0)
+  unit         String   @default("PCS")
+  rate         Float
+  discount     Float    @default(0)
+  taxRate      Float
+  taxInclusive Boolean  @default(false)
+  cgst         Float    @default(0)
+  sgst         Float    @default(0)
+  igst         Float    @default(0)
+  amount       Float
+  taxAmount    Float
+  costPrice    Float?   @default(0)
+  profit       Float?   @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
-
-
-
-
 model Subscription {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId        String   @db.ObjectId
-  user          User     @relation(fields: [userId], references: [id])
-  
-  productCode   String
-  tier          String
-  interval      String
-  amount        Float
-  
-  paymentId     String
-  orderId       String?
-  
-  status        String   @default("active")
-  startDate     DateTime @default(now())
-  endDate       DateTime
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+
+  productCode String
+  tier        String
+  interval    String
+  amount      Float
+
+  paymentId String
+  orderId   String?
+
+  status    String   @default("active")
+  startDate DateTime @default(now())
+  endDate   DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model CreditNote {
@@ -357,8 +479,8 @@ model DebitNoteItem {
 }
 
 model HSNCode {
-  id            String    @id @default(auto()) @map("_id") @db.ObjectId
-  hsnCode       String    @unique
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  hsnCode       String   @unique
   type          String?
   description   String
   gstRate       Float?
@@ -366,8 +488,8 @@ model HSNCode {
   chapterName   String?
   chapterNumber String?
   taxDetails    Json?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model EmailTemplate {
@@ -383,19 +505,19 @@ model EmailTemplate {
 }
 
 model EmailLog {
-  id               String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId           String   @db.ObjectId
-  toEmail          String
-  subject          String
-  html             String
-  templateId       String?  @db.ObjectId
-  variables        Json?
-  status           String   @default("draft")
-  gmailMessageId   String?
-  errorMessage     String?
-  sentAt           DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String    @db.ObjectId
+  toEmail        String
+  subject        String
+  html           String
+  templateId     String?   @db.ObjectId
+  variables      Json?
+  status         String    @default("draft")
+  gmailMessageId String?
+  errorMessage   String?
+  sentAt         DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 model MailTemplate {
@@ -421,21 +543,21 @@ model MailTemplate {
 }
 
 model MailLog {
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId          String   @db.ObjectId
-  templateId      String?  @db.ObjectId
-  recipients      String[]
-  subject         String
-  htmlContent     String
-  variables       Json?
-  status          String   @default("pending")
-  provider        String?
-  gmailMessageId  String?
-  errorMessage    String?
-  sentAt          DateTime?
-  scheduledFor    DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String    @db.ObjectId
+  templateId     String?   @db.ObjectId
+  recipients     String[]
+  subject        String
+  htmlContent    String
+  variables      Json?
+  status         String    @default("pending")
+  provider       String?
+  gmailMessageId String?
+  errorMessage   String?
+  sentAt         DateTime?
+  scheduledFor   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@index([userId])
   @@index([status])

@@ -1,6 +1,9 @@
 const prisma = require('../config/prisma');
 const axios = require('axios');
 const { sendInvoiceEmailAuto } = require('./emailHelpers');
+const stockService = require('../services/stockService');
+const costService = require('../services/costService');
+const { generateDocumentNumber } = require('../utils/documentNumberGenerator');
 
 const GOTENBERG_URL = process.env.GOTENBERG_URL || 'http://localhost:3001';
 
@@ -112,7 +115,8 @@ exports.createInvoice = async (req, res) => {
     const year = new Date().getFullYear();
     const prefix = organisation.invoicePrefix || 'INV';
     const counter = organisation.invoiceCounter || 1;
-    const invoiceNumber = `${prefix}-${year}-${String(counter).padStart(3, '0')}`;
+    const format = organisation.invoiceFormat || '{PREFIX}-{YYYY}-{###}';
+    const invoiceNumber = generateDocumentNumber(format, prefix, counter);
     
     // Update counter
     await prisma.organisation.update({
@@ -161,6 +165,10 @@ exports.createInvoice = async (req, res) => {
         totalSGST += sgst;
       }
 
+      // Get moving average cost for profit calculation
+      const costPrice = product?.avgCost || 0;
+      const profit = (itemRate - costPrice) * item.quantity;
+
       return {
         productId: item.productId,
         description: item.description,
@@ -175,7 +183,9 @@ exports.createInvoice = async (req, res) => {
         sgst,
         igst,
         amount: itemAmount,
-        taxAmount: itemTaxAmount
+        taxAmount: itemTaxAmount,
+        costPrice,
+        profit
       };
     }));
 
@@ -253,6 +263,15 @@ exports.createInvoice = async (req, res) => {
         customer: true
       }
     });
+
+    // Reduce stock quantities for sold items
+    try {
+      await stockService.updateStockOnSale(validatedItems, organisationId, invoice.id);
+    } catch (stockError) {
+      // If stock update fails, delete the invoice and throw error
+      await prisma.invoice.delete({ where: { id: invoice.id } });
+      throw new Error(`Stock update failed: ${stockError.message}`);
+    }
 
     res.json({ success: true, data: invoice });
 
@@ -366,5 +385,55 @@ exports.getInvoice = async (req, res) => {
   } catch (error) {
     console.error('Get invoice error:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch invoice', details: error.message });
+  }
+};
+
+exports.deleteInvoice = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const organisations = await prisma.organisation.findMany({
+      where: { userId: req.userId },
+      take: 1
+    });
+
+    if (!organisations.length) {
+      return res.status(404).json({ success: false, error: 'Invoice not found' });
+    }
+
+    const organisationId = organisations[0].id;
+
+    // Fetch the invoice with items
+    const invoice = await prisma.invoice.findFirst({
+      where: { id, organisationId },
+      include: {
+        items: true
+      }
+    });
+
+    if (!invoice) {
+      return res.status(404).json({ success: false, error: 'Invoice not found' });
+    }
+
+    // Restore stock quantities before deleting the invoice
+    try {
+      await stockService.reverseStockOnSaleDelete(invoice.items, organisationId, invoice.id);
+    } catch (stockError) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Failed to restore stock', 
+        details: stockError.message 
+      });
+    }
+
+    // Delete the invoice (cascade will delete items)
+    await prisma.invoice.delete({
+      where: { id }
+    });
+
+    res.json({ success: true, message: 'Invoice deleted successfully' });
+  } catch (error) {
+    console.error('Delete invoice error:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete invoice', details: error.message });
   }
 };

@@ -29,6 +29,10 @@ const gmailRoutes = require('./routes/gmail');
 const emailRoutes = require('./routes/email');
 const mailerRoutes = require('./routes/mailer');
 const templateRoutes = require('./routes/template');
+const supplierRoutes = require('./routes/supplier');
+const purchaseRoutes = require('./routes/purchase');
+const stockRoutes = require('./routes/stock');
+const reportRoutes = require('./routes/report');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -102,6 +106,10 @@ app.use('/api/gmail', gmailRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/mailer', mailerRoutes);
 app.use('/api/templates', templateRoutes);
+app.use('/api/suppliers', supplierRoutes);
+app.use('/api/purchases', purchaseRoutes);
+app.use('/api/stock', stockRoutes);
+app.use('/api/reports', reportRoutes);
 
 app.get('/public/invoice/:id/:signature', pdfController.getInvoicePDFPublic);
 

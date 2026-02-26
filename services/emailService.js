@@ -32,9 +32,9 @@ async function sendEmail({ to, subject, html, text, from = emailSenders.support,
 }
 
 async function sendTemplateEmail(to, template, data) {
-  const { subject, html } = await emailTemplates[template](data);
+  const { subject, html } = await emailTemplates.renderTemplate(template, data);
   
-  const automatedTemplates = ['welcome', 'emailVerification', 'paymentReminder', 'inventoryUpdate'];
+  const automatedTemplates = ['welcome', 'emailVerification', 'paymentReminder', 'inventoryUpdate', 'subscriptionExpiring'];
   const from = automatedTemplates.includes(template) 
     ? emailSenders.noreply 
     : emailSenders.support;

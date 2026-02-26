@@ -212,4 +212,28 @@ router.get('/:id/pdf', authenticate, pdfController.generateInvoicePDF);
 // TODO: Implement sendInvoiceByEmail function
 // router.post('/:id/send', authenticate, emailController.sendInvoiceByEmail);
 
+/**
+ * @swagger
+ * /api/invoices/{id}:
+ *   delete:
+ *     summary: Delete an invoice and restore stock
+ *     tags: [Invoices]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Invoice deleted successfully
+ *       404:
+ *         description: Invoice not found
+ *       500:
+ *         description: Failed to delete invoice
+ */
+router.delete('/:id', authenticate, invoiceController.deleteInvoice);
+
 module.exports = router;

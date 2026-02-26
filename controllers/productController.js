@@ -2,7 +2,58 @@ const prisma = require('../config/prisma');
 
 exports.createProduct = async (req, res) => {
   try {
-    const { name, description, sku, hsnCode, sacCode, unit, price, taxRate, currency, taxInclusive } = req.body;
+    const { 
+      name, description, sku, hsnCode, sacCode, hsnSac, unit, price, sellingPrice, taxRate, currency, taxInclusive,
+      purchasePrice, stockQuantity, avgCost, minStock
+    } = req.body;
+
+    // Handle both 'price' and 'sellingPrice' fields
+    const productPrice = price !== undefined ? price : sellingPrice;
+    
+    // Handle hsnSac field (split into hsnCode or sacCode)
+    let finalHsnCode = hsnCode || '';
+    let finalSacCode = sacCode || '';
+    if (hsnSac) {
+      // If it's numeric, treat as HSN, otherwise SAC
+      if (/^\d+$/.test(hsnSac)) {
+        finalHsnCode = hsnSac;
+      } else {
+        finalSacCode = hsnSac;
+      }
+    }
+
+    // Validation for negative values
+    if (productPrice !== undefined && productPrice < 0) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Price cannot be negative',
+        code: 'INVALID_PRICE'
+      });
+    }
+
+    if (purchasePrice !== undefined && purchasePrice < 0) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Purchase price cannot be negative',
+        code: 'INVALID_PURCHASE_PRICE'
+      });
+    }
+
+    if (stockQuantity !== undefined && stockQuantity < 0) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Stock quantity cannot be negative',
+        code: 'INVALID_STOCK_QUANTITY'
+      });
+    }
+
+    if (minStock !== undefined && minStock < 0) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Minimum stock cannot be negative',
+        code: 'INVALID_MIN_STOCK'
+      });
+    }
 
     const organisations = await prisma.organisation.findMany({
       where: { userId: req.userId },
@@ -31,13 +82,17 @@ exports.createProduct = async (req, res) => {
         data: {
           name,
           description: description || '',
-          hsnCode: hsnCode || '',
-          sacCode: sacCode || '',
+          hsnCode: finalHsnCode,
+          sacCode: finalSacCode,
           unit,
-          price,
+          price: productPrice,
           taxRate,
           currency: currency || 'INR',
           taxInclusive: taxInclusive || false,
+          purchasePrice: purchasePrice !== undefined ? purchasePrice : 0,
+          stockQuantity: stockQuantity !== undefined ? stockQuantity : 0,
+          avgCost: avgCost !== undefined ? avgCost : 0,
+          minStock: minStock !== undefined ? minStock : 0,
           isActive: true,
         }
       });
@@ -48,13 +103,17 @@ exports.createProduct = async (req, res) => {
           name,
           description: description || '',
           sku,
-          hsnCode: hsnCode || '',
-          sacCode: sacCode || '',
+          hsnCode: finalHsnCode,
+          sacCode: finalSacCode,
           unit,
-          price,
+          price: productPrice,
           taxRate,
           currency: currency || 'INR',
           taxInclusive: taxInclusive || false,
+          purchasePrice: purchasePrice !== undefined ? purchasePrice : 0,
+          stockQuantity: stockQuantity !== undefined ? stockQuantity : 0,
+          avgCost: avgCost !== undefined ? avgCost : 0,
+          minStock: minStock !== undefined ? minStock : 0,
           organisationId: organisations[0].id
         }
       });
@@ -100,9 +159,15 @@ exports.getProducts = async (req, res) => {
       })
     ]);
 
+    // Add low stock indicator to each product
+    const productsWithLowStockIndicator = products.map(product => ({
+      ...product,
+      isLowStock: product.stockQuantity < product.minStock
+    }));
+
     res.json({ 
       success: true, 
-      data: products,
+      data: productsWithLowStockIndicator,
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
     });
   } catch (error) {
@@ -115,6 +180,72 @@ exports.updateProduct = async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
 
+    // Validation for negative values
+    if (updateData.price !== undefined && updateData.price < 0) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Price cannot be negative',
+        code: 'INVALID_PRICE'
+      });
+    }
+
+    if (updateData.purchasePrice !== undefined && updateData.purchasePrice < 0) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Purchase price cannot be negative',
+        code: 'INVALID_PURCHASE_PRICE'
+      });
+    }
+
+    if (updateData.stockQuantity !== undefined && updateData.stockQuantity < 0) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Stock quantity cannot be negative',
+        code: 'INVALID_STOCK_QUANTITY'
+      });
+    }
+
+    if (updateData.minStock !== undefined && updateData.minStock < 0) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Minimum stock cannot be negative',
+        code: 'INVALID_MIN_STOCK'
+      });
+    }
+
+    // If SKU is being updated, check for uniqueness
+    if (updateData.sku) {
+      const currentProduct = await prisma.product.findUnique({
+        where: { id }
+      });
+
+      if (!currentProduct) {
+        return res.status(404).json({ 
+          success: false,
+          error: 'Product not found',
+          code: 'PRODUCT_NOT_FOUND'
+        });
+      }
+
+      // Check if another product with the same SKU exists
+      const existingProduct = await prisma.product.findUnique({
+        where: {
+          organisationId_sku: {
+            organisationId: currentProduct.organisationId,
+            sku: updateData.sku
+          }
+        }
+      });
+
+      if (existingProduct && existingProduct.id !== id) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'A product with this SKU already exists',
+          code: 'DUPLICATE_SKU'
+        });
+      }
+    }
+
     const product = await prisma.product.update({
       where: { id },
       data: updateData
@@ -122,6 +253,7 @@ exports.updateProduct = async (req, res) => {
 
     res.json({ success: true, data: product });
   } catch (error) {
+    console.error('Product update error:', error);
     res.status(500).json({ error: 'Failed to update product' });
   }
 };
@@ -152,7 +284,13 @@ exports.searchProducts = async (req, res) => {
       take: 20
     });
 
-    res.json({ success: true, data: products });
+    // Add low stock indicator to each product
+    const productsWithLowStockIndicator = products.map(product => ({
+      ...product,
+      isLowStock: product.stockQuantity < product.minStock
+    }));
+
+    res.json({ success: true, data: productsWithLowStockIndicator });
   } catch (error) {
     res.status(500).json({ error: 'Failed to search products' });
   }
@@ -208,6 +346,10 @@ exports.bulkUploadProducts = async (req, res) => {
       taxRate: parseFloat(p.taxRate),
       currency: p.Currency || 'INR',
       taxInclusive: p.taxInclusive === 'true' || p.taxInclusive === true,
+      purchasePrice: p.purchasePrice ? parseFloat(p.purchasePrice) : 0,
+      stockQuantity: p.stockQuantity ? parseFloat(p.stockQuantity) : 0,
+      avgCost: p.avgCost ? parseFloat(p.avgCost) : 0,
+      minStock: p.minStock ? parseFloat(p.minStock) : 0,
       organisationId: organisations[0].id
     }));
 

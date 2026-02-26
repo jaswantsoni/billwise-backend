@@ -1,218 +1,308 @@
 const prisma = require('../config/prisma');
+const validationService = require('../services/validationService');
+const gstService = require('../services/gstService');
+const stockService = require('../services/stockService');
 
+/**
+ * Create a new purchase bill
+ * Validates input, calculates GST, creates purchase record, updates stock
+ */
 exports.createPurchase = async (req, res) => {
   try {
     const {
       supplierId,
+      billNumber,
+      invoiceNumber,
       purchaseDate,
       dueDate,
-      billNumber,
-      items,
-      placeOfSupply,
-      reverseCharge,
-      otherCharges,
-      notes
+      paymentMode,
+      transportCharges,
+      notes,
+      items
     } = req.body;
 
+    // Validate purchase data
+    const validation = validationService.validatePurchaseData(req.body);
+    if (!validation.isValid) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: validation.errors
+      });
+    }
+
+    // Get organisation
     const organisations = await prisma.organisation.findMany({
       where: { userId: req.userId },
       take: 1
     });
 
     if (!organisations.length) {
-      return res.status(400).json({ error: 'No organisation found' });
+      return res.status(400).json({
+        success: false,
+        error: 'No organisation found'
+      });
     }
 
     const organisationId = organisations[0].id;
     const organisation = organisations[0];
 
-    // Verify supplier
+    // Verify supplier exists and belongs to organisation
     const supplier = await prisma.supplier.findFirst({
       where: { id: supplierId, organisationId }
     });
 
     if (!supplier) {
-      return res.status(400).json({ error: 'Supplier not found' });
+      return res.status(404).json({
+        success: false,
+        error: 'Supplier not found'
+      });
     }
 
-    // Determine if interstate
-    const orgState = organisation.state || '';
-    const supplierState = supplier.state || '';
-    const isInterstate = orgState && supplierState && orgState !== supplierState;
-
-    // Generate purchase number
-    const year = new Date().getFullYear();
-    const lastPurchase = await prisma.purchase.findFirst({
-      where: { purchaseNumber: { startsWith: `PUR-${year}-` } },
-      orderBy: { createdAt: 'desc' }
-    });
-
-    let purchaseNumber;
-    if (lastPurchase) {
-      const lastNumber = parseInt(lastPurchase.purchaseNumber.split('-')[2]);
-      purchaseNumber = `PUR-${year}-${String(lastNumber + 1).padStart(3, '0')}`;
-    } else {
-      purchaseNumber = `PUR-${year}-001`;
-    }
-
-    // Calculate totals
-    let calculatedSubtotal = 0;
-    let calculatedTotalTax = 0;
-    let totalCGST = 0;
-    let totalSGST = 0;
-    let totalIGST = 0;
-
-    const validatedItems = await Promise.all(items.map(async item => {
-      const product = await prisma.product.findUnique({ where: { id: item.productId } });
+    // Verify all products exist and belong to organisation
+    for (const item of items) {
+      const product = await prisma.product.findFirst({
+        where: { id: item.productId, organisationId }
+      });
       if (!product) {
-        throw new Error(`Product ${item.productId} not found`);
+        return res.status(404).json({
+          success: false,
+          error: `Product not found: ${item.productId}`
+        });
       }
+    }
 
-      const itemAmount = item.quantity * item.rate - (item.discount || 0);
-      const itemTaxAmount = itemAmount * (item.taxRate / 100);
-      calculatedSubtotal += itemAmount;
-      calculatedTotalTax += itemTaxAmount;
+    // Auto-generate bill number if not provided
+    let finalBillNumber = billNumber;
+    if (!finalBillNumber) {
+      const year = new Date().getFullYear();
+      const lastPurchase = await prisma.purchase.findFirst({
+        where: {
+          organisationId,
+          billNumber: { startsWith: `PUR-${year}-` }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
 
-      let cgst = 0, sgst = 0, igst = 0;
-      if (isInterstate) {
-        igst = itemTaxAmount;
-        totalIGST += igst;
+      if (lastPurchase) {
+        const lastNumber = parseInt(lastPurchase.billNumber.split('-')[2]);
+        finalBillNumber = `PUR-${year}-${String(lastNumber + 1).padStart(4, '0')}`;
       } else {
-        cgst = itemTaxAmount / 2;
-        sgst = itemTaxAmount / 2;
-        totalCGST += cgst;
-        totalSGST += sgst;
+        finalBillNumber = `PUR-${year}-0001`;
       }
+    }
 
-      return {
-        productId: item.productId,
-        description: item.description || product.name,
-        hsnSac: item.hsnSac || product.hsnCode || product.sacCode || '',
-        quantity: item.quantity,
-        unit: item.unit || product.unit,
-        rate: item.rate,
-        discount: item.discount || 0,
-        taxRate: item.taxRate,
-        cgst,
-        sgst,
-        igst,
-        amount: itemAmount,
-        taxAmount: itemTaxAmount
-      };
+    // Calculate GST breakdown
+    const gstCalculation = gstService.calculatePurchaseGST(
+      items,
+      supplier.state,
+      organisation.state
+    );
+
+    // Calculate line totals for each item
+    const itemsWithLineTotals = gstCalculation.itemsWithGST.map(item => ({
+      ...item,
+      lineTotal: item.amount + item.taxAmount
     }));
 
-    const calculatedTotal = calculatedSubtotal + calculatedTotalTax + (otherCharges || 0);
+    // Calculate grand total
+    const grandTotal = gstCalculation.subtotal + gstCalculation.totalTax + (transportCharges || 0);
 
     // Create purchase with transaction
     const purchase = await prisma.$transaction(async (tx) => {
+      // Create purchase record
       const newPurchase = await tx.purchase.create({
         data: {
-          purchaseNumber,
+          billNumber: finalBillNumber,
+          invoiceNumber: invoiceNumber || null,
           supplierId,
           purchaseDate: new Date(purchaseDate),
           dueDate: dueDate ? new Date(dueDate) : null,
-          billNumber,
-          placeOfSupply: placeOfSupply || supplierState,
-          reverseCharge: reverseCharge || false,
-          subtotal: calculatedSubtotal,
-          cgst: totalCGST,
-          sgst: totalSGST,
-          igst: totalIGST,
-          otherCharges: otherCharges || 0,
-          totalTax: calculatedTotalTax,
-          total: calculatedTotal,
-          balanceAmount: calculatedTotal,
-          notes,
-          status: 'COMPLETED',
-          organisationId,
-          items: {
-            create: validatedItems
-          }
-        },
-        include: {
-          items: true,
-          supplier: true
+          paymentMode: paymentMode || null,
+          transportCharges: transportCharges || 0,
+          subtotal: gstCalculation.subtotal,
+          cgst: gstCalculation.totalCGST,
+          sgst: gstCalculation.totalSGST,
+          igst: gstCalculation.totalIGST,
+          totalTax: gstCalculation.totalTax,
+          grandTotal,
+          paymentStatus: 'UNPAID',
+          paidAmount: 0,
+          status: 'DRAFT',
+          notes: notes || null,
+          organisationId
         }
       });
 
-      // Update stock for each item
-      for (const item of validatedItems) {
-        const product = await tx.product.findUnique({ where: { id: item.productId } });
-        const newStock = product.stock + item.quantity;
-
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { 
-            stock: newStock,
-            totalPurchased: product.totalPurchased + item.quantity
-          }
+      // Create purchase items
+      for (const item of itemsWithLineTotals) {
+        const product = await tx.product.findUnique({
+          where: { id: item.productId }
         });
 
-        // Create stock movement
-        await tx.stockMovement.create({
+        await tx.purchaseItem.create({
           data: {
+            purchaseId: newPurchase.id,
             productId: item.productId,
-            type: 'IN',
+            description: item.description || product.name,
+            hsnSac: item.hsnSac || product.hsnCode || product.sacCode || '',
             quantity: item.quantity,
-            reference: purchaseNumber,
-            referenceId: newPurchase.id,
-            notes: `Purchase from ${supplier.name}`,
-            balanceAfter: newStock
+            unit: item.unit || product.unit,
+            rate: item.rate,
+            discount: item.discount || 0,
+            taxRate: item.taxRate,
+            cgst: item.cgst,
+            sgst: item.sgst,
+            igst: item.igst,
+            taxAmount: item.taxAmount,
+            lineTotal: item.lineTotal
           }
         });
       }
+
+      // Update stock and moving average cost
+      await stockService.updateStockOnPurchase(
+        itemsWithLineTotals.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          rate: item.rate
+        })),
+        organisationId,
+        newPurchase.id
+      );
 
       return newPurchase;
     });
 
-    res.json({ success: true, data: purchase });
+    // Fetch complete purchase with relations
+    const completePurchase = await prisma.purchase.findUnique({
+      where: { id: purchase.id },
+      include: {
+        supplier: true,
+        items: {
+          include: {
+            product: true
+          }
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      data: completePurchase
+    });
   } catch (error) {
     console.error('Purchase creation error:', error);
-    res.status(500).json({ error: 'Failed to create purchase', details: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create purchase',
+      details: error.message
+    });
   }
 };
 
+/**
+ * Get all purchases with optional filters
+ * Supports filtering by supplier, status, and date range
+ */
 exports.getPurchases = async (req, res) => {
   try {
+    const { supplierId, status, startDate, endDate, page = 1, limit = 20 } = req.query;
+
+    // Get organisation
     const organisations = await prisma.organisation.findMany({
       where: { userId: req.userId },
       take: 1
     });
 
     if (!organisations.length) {
-      return res.json({ success: true, data: [] });
+      return res.json({ success: true, data: [], total: 0, page: 1, limit: 20 });
     }
 
+    const organisationId = organisations[0].id;
+
+    // Build where clause
+    const whereClause = { organisationId };
+
+    if (supplierId) {
+      whereClause.supplierId = supplierId;
+    }
+
+    if (status) {
+      whereClause.status = status;
+    }
+
+    if (startDate || endDate) {
+      whereClause.purchaseDate = {};
+      if (startDate) {
+        whereClause.purchaseDate.gte = new Date(startDate);
+      }
+      if (endDate) {
+        whereClause.purchaseDate.lte = new Date(endDate);
+      }
+    }
+
+    // Get total count
+    const total = await prisma.purchase.count({ where: whereClause });
+
+    // Get purchases with pagination
     const purchases = await prisma.purchase.findMany({
-      where: { organisationId: organisations[0].id },
+      where: whereClause,
       include: {
         supplier: true,
-        items: true
+        items: {
+          include: {
+            product: true
+          }
+        }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { purchaseDate: 'desc' },
+      skip: (parseInt(page) - 1) * parseInt(limit),
+      take: parseInt(limit)
     });
 
-    res.json({ success: true, data: purchases });
+    res.json({
+      success: true,
+      data: purchases,
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit)
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch purchases' });
+    console.error('Get purchases error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch purchases',
+      details: error.message
+    });
   }
 };
 
+/**
+ * Get a single purchase by ID with full details
+ */
 exports.getPurchase = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Get organisation
     const organisations = await prisma.organisation.findMany({
       where: { userId: req.userId },
       take: 1
     });
 
     if (!organisations.length) {
-      return res.status(404).json({ error: 'Purchase not found' });
+      return res.status(404).json({
+        success: false,
+        error: 'Purchase not found'
+      });
     }
 
+    const organisationId = organisations[0].id;
+
+    // Get purchase with full details
     const purchase = await prisma.purchase.findFirst({
-      where: { id, organisationId: organisations[0].id },
+      where: { id, organisationId },
       include: {
         supplier: true,
         items: {
@@ -224,27 +314,395 @@ exports.getPurchase = async (req, res) => {
     });
 
     if (!purchase) {
-      return res.status(404).json({ error: 'Purchase not found' });
+      return res.status(404).json({
+        success: false,
+        error: 'Purchase not found'
+      });
     }
 
-    res.json({ success: true, data: purchase });
+    res.json({
+      success: true,
+      data: purchase
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch purchase' });
+    console.error('Get purchase error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch purchase',
+      details: error.message
+    });
   }
 };
 
-exports.getStockMovements = async (req, res) => {
+/**
+ * Update a purchase (only if not finalized)
+ * Reverses old stock changes and applies new ones
+ */
+exports.updatePurchase = async (req, res) => {
   try {
-    const { productId } = req.params;
+    const { id } = req.params;
+    const {
+      supplierId,
+      billNumber,
+      invoiceNumber,
+      purchaseDate,
+      dueDate,
+      paymentMode,
+      transportCharges,
+      notes,
+      items
+    } = req.body;
 
-    const movements = await prisma.stockMovement.findMany({
-      where: { productId },
-      include: { product: true },
-      orderBy: { createdAt: 'desc' }
+    // Get organisation
+    const organisations = await prisma.organisation.findMany({
+      where: { userId: req.userId },
+      take: 1
     });
 
-    res.json({ success: true, data: movements });
+    if (!organisations.length) {
+      return res.status(404).json({
+        success: false,
+        error: 'Purchase not found'
+      });
+    }
+
+    const organisationId = organisations[0].id;
+    const organisation = organisations[0];
+
+    // Get existing purchase
+    const existingPurchase = await prisma.purchase.findFirst({
+      where: { id, organisationId },
+      include: {
+        items: true
+      }
+    });
+
+    if (!existingPurchase) {
+      return res.status(404).json({
+        success: false,
+        error: 'Purchase not found'
+      });
+    }
+
+    // Check if purchase is finalized
+    if (existingPurchase.status === 'FINALIZED') {
+      return res.status(422).json({
+        success: false,
+        error: 'Cannot update finalized purchase',
+        code: 'PURCHASE_FINALIZED'
+      });
+    }
+
+    // Validate purchase data
+    const validation = validationService.validatePurchaseData(req.body);
+    if (!validation.isValid) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: validation.errors
+      });
+    }
+
+    // Verify supplier exists
+    const supplier = await prisma.supplier.findFirst({
+      where: { id: supplierId, organisationId }
+    });
+
+    if (!supplier) {
+      return res.status(404).json({
+        success: false,
+        error: 'Supplier not found'
+      });
+    }
+
+    // Verify all products exist
+    for (const item of items) {
+      const product = await prisma.product.findFirst({
+        where: { id: item.productId, organisationId }
+      });
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          error: `Product not found: ${item.productId}`
+        });
+      }
+    }
+
+    // Calculate GST breakdown
+    const gstCalculation = gstService.calculatePurchaseGST(
+      items,
+      supplier.state,
+      organisation.state
+    );
+
+    // Calculate line totals
+    const itemsWithLineTotals = gstCalculation.itemsWithGST.map(item => ({
+      ...item,
+      lineTotal: item.amount + item.taxAmount
+    }));
+
+    // Calculate grand total
+    const grandTotal = gstCalculation.subtotal + gstCalculation.totalTax + (transportCharges || 0);
+
+    // Update purchase with transaction
+    const purchase = await prisma.$transaction(async (tx) => {
+      // Reverse old stock changes
+      await stockService.reverseStockOnPurchaseDelete(
+        existingPurchase.items.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          rate: item.rate
+        })),
+        organisationId,
+        existingPurchase.id
+      );
+
+      // Delete old purchase items
+      await tx.purchaseItem.deleteMany({
+        where: { purchaseId: id }
+      });
+
+      // Update purchase record
+      const updatedPurchase = await tx.purchase.update({
+        where: { id },
+        data: {
+          billNumber: billNumber || existingPurchase.billNumber,
+          invoiceNumber: invoiceNumber || null,
+          supplierId,
+          purchaseDate: new Date(purchaseDate),
+          dueDate: dueDate ? new Date(dueDate) : null,
+          paymentMode: paymentMode || null,
+          transportCharges: transportCharges || 0,
+          subtotal: gstCalculation.subtotal,
+          cgst: gstCalculation.totalCGST,
+          sgst: gstCalculation.totalSGST,
+          igst: gstCalculation.totalIGST,
+          totalTax: gstCalculation.totalTax,
+          grandTotal,
+          notes: notes || null
+        }
+      });
+
+      // Create new purchase items
+      for (const item of itemsWithLineTotals) {
+        const product = await tx.product.findUnique({
+          where: { id: item.productId }
+        });
+
+        await tx.purchaseItem.create({
+          data: {
+            purchaseId: id,
+            productId: item.productId,
+            description: item.description || product.name,
+            hsnSac: item.hsnSac || product.hsnCode || product.sacCode || '',
+            quantity: item.quantity,
+            unit: item.unit || product.unit,
+            rate: item.rate,
+            discount: item.discount || 0,
+            taxRate: item.taxRate,
+            cgst: item.cgst,
+            sgst: item.sgst,
+            igst: item.igst,
+            taxAmount: item.taxAmount,
+            lineTotal: item.lineTotal
+          }
+        });
+      }
+
+      // Apply new stock changes
+      await stockService.updateStockOnPurchase(
+        itemsWithLineTotals.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          rate: item.rate
+        })),
+        organisationId,
+        id
+      );
+
+      return updatedPurchase;
+    });
+
+    // Fetch complete purchase with relations
+    const completePurchase = await prisma.purchase.findUnique({
+      where: { id: purchase.id },
+      include: {
+        supplier: true,
+        items: {
+          include: {
+            product: true
+          }
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      data: completePurchase
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch stock movements' });
+    console.error('Purchase update error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update purchase',
+      details: error.message
+    });
   }
 };
+
+/**
+ * Delete a purchase (only if not finalized)
+ * Reverses stock changes
+ */
+exports.deletePurchase = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get organisation
+    const organisations = await prisma.organisation.findMany({
+      where: { userId: req.userId },
+      take: 1
+    });
+
+    if (!organisations.length) {
+      return res.status(404).json({
+        success: false,
+        error: 'Purchase not found'
+      });
+    }
+
+    const organisationId = organisations[0].id;
+
+    // Get existing purchase
+    const existingPurchase = await prisma.purchase.findFirst({
+      where: { id, organisationId },
+      include: {
+        items: true
+      }
+    });
+
+    if (!existingPurchase) {
+      return res.status(404).json({
+        success: false,
+        error: 'Purchase not found'
+      });
+    }
+
+    // Check if purchase is finalized
+    if (existingPurchase.status === 'FINALIZED') {
+      return res.status(422).json({
+        success: false,
+        error: 'Cannot delete finalized purchase',
+        code: 'PURCHASE_FINALIZED'
+      });
+    }
+
+    // Delete purchase with transaction
+    await prisma.$transaction(async (tx) => {
+      // Reverse stock changes
+      await stockService.reverseStockOnPurchaseDelete(
+        existingPurchase.items.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          rate: item.rate
+        })),
+        organisationId,
+        existingPurchase.id
+      );
+
+      // Delete purchase (cascade will delete items)
+      await tx.purchase.delete({
+        where: { id }
+      });
+    });
+
+    res.json({
+      success: true,
+      message: 'Purchase deleted successfully'
+    });
+  } catch (error) {
+    console.error('Purchase deletion error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete purchase',
+      details: error.message
+    });
+  }
+};
+
+/**
+ * Finalize a purchase to lock editing
+ */
+exports.finalizePurchase = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get organisation
+    const organisations = await prisma.organisation.findMany({
+      where: { userId: req.userId },
+      take: 1
+    });
+
+    if (!organisations.length) {
+      return res.status(404).json({
+        success: false,
+        error: 'Purchase not found'
+      });
+    }
+
+    const organisationId = organisations[0].id;
+
+    // Get existing purchase
+    const existingPurchase = await prisma.purchase.findFirst({
+      where: { id, organisationId }
+    });
+
+    if (!existingPurchase) {
+      return res.status(404).json({
+        success: false,
+        error: 'Purchase not found'
+      });
+    }
+
+    // Check if already finalized
+    if (existingPurchase.status === 'FINALIZED') {
+      return res.status(422).json({
+        success: false,
+        error: 'Purchase is already finalized',
+        code: 'ALREADY_FINALIZED'
+      });
+    }
+
+    // Update status to finalized
+    const purchase = await prisma.purchase.update({
+      where: { id },
+      data: {
+        status: 'FINALIZED'
+      },
+      include: {
+        supplier: true,
+        items: {
+          include: {
+            product: true
+          }
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      data: purchase,
+      message: 'Purchase finalized successfully'
+    });
+  } catch (error) {
+    console.error('Purchase finalization error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to finalize purchase',
+      details: error.message
+    });
+  }
+};
+
+// Alias for getPurchase to match design document naming
+exports.getPurchaseById = exports.getPurchase;
