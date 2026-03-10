@@ -245,3 +245,70 @@ exports.updateDocumentSettings = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.uploadLogo = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Verify organisation belongs to user
+    const organisation = await prisma.organisation.findFirst({
+      where: { id, userId: req.userId }
+    });
+
+    if (!organisation) {
+      return res.status(404).json({ success: false, error: 'Organisation not found' });
+    }
+
+    let logoData = null;
+
+    // Handle file upload
+    if (req.file) {
+      const base64 = req.file.buffer.toString('base64');
+      logoData = `data:${req.file.mimetype};base64,${base64}`;
+    } 
+    // Handle base64 string from body
+    else if (req.body.logo) {
+      logoData = req.body.logo;
+    } else {
+      return res.status(400).json({ success: false, error: 'No logo provided' });
+    }
+
+    // Validate it's an image
+    if (!logoData.startsWith('data:image/')) {
+      return res.status(400).json({ success: false, error: 'Invalid image format' });
+    }
+
+    const updated = await prisma.organisation.update({
+      where: { id },
+      data: { logo: logoData }
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.deleteLogo = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Verify organisation belongs to user
+    const organisation = await prisma.organisation.findFirst({
+      where: { id, userId: req.userId }
+    });
+
+    if (!organisation) {
+      return res.status(404).json({ success: false, error: 'Organisation not found' });
+    }
+
+    const updated = await prisma.organisation.update({
+      where: { id },
+      data: { logo: null }
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    next(error);
+  }
+};

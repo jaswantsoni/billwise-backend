@@ -268,7 +268,8 @@ exports.createInvoice = async (req, res) => {
     try {
       await stockService.updateStockOnSale(validatedItems, organisationId, invoice.id);
     } catch (stockError) {
-      // If stock update fails, delete the invoice and throw error
+      // If stock update fails, delete the invoice and related items
+      await prisma.invoiceItem.deleteMany({ where: { invoiceId: invoice.id } });
       await prisma.invoice.delete({ where: { id: invoice.id } });
       throw new Error(`Stock update failed: ${stockError.message}`);
     }
@@ -426,7 +427,11 @@ exports.deleteInvoice = async (req, res) => {
       });
     }
 
-    // Delete the invoice (cascade will delete items)
+    // Delete invoice items first, then the invoice
+    await prisma.invoiceItem.deleteMany({
+      where: { invoiceId: id }
+    });
+    
     await prisma.invoice.delete({
       where: { id }
     });

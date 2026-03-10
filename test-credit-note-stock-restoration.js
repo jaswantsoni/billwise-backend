@@ -266,6 +266,9 @@ async function runTests() {
       await prisma.creditNote.deleteMany({
         where: { invoiceId: testInvoice.id }
       });
+      await prisma.invoiceItem.deleteMany({
+        where: { invoiceId: testInvoice.id }
+      });
       await prisma.invoice.delete({
         where: { id: testInvoice.id }
       });
