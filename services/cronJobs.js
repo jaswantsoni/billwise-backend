@@ -37,26 +37,43 @@ const sendExpiryReminders = async () => {
     twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
     twoDaysFromNow.setHours(0, 0, 0, 0);
 
+    // Get start of today to check if reminder was already sent today
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
     const expiringUsers = await prisma.user.findMany({
       where: {
         planStatus: 'active',
         planExpiry: {
           gte: twoDaysFromNow,
           lte: threeDaysFromNow
-        }
+        },
+        // Only include users who haven't received a reminder today
+        OR: [
+          { lastReminderSent: null },
+          { lastReminderSent: { lt: todayStart } }
+        ]
       },
       select: {
         id: true,
         email: true,
         name: true,
         planTier: true,
-        planExpiry: true
+        planExpiry: true,
+        lastReminderSent: true
       }
     });
 
     for (const user of expiringUsers) {
       try {
         await sendSubscriptionExpiryReminder(user);
+        
+        // Update the lastReminderSent field to prevent duplicate emails
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastReminderSent: new Date() }
+        });
+        
         console.log(`[CRON] Sent expiry reminder to ${user.email}`);
       } catch (error) {
         console.error(`[CRON] Failed to send reminder to ${user.email}:`, error);
@@ -65,21 +82,49 @@ const sendExpiryReminders = async () => {
 
     if (expiringUsers.length > 0) {
       console.log(`[CRON] Sent ${expiringUsers.length} expiry reminders`);
+    } else {
+      console.log('[CRON] No new expiry reminders to send');
     }
   } catch (error) {
     console.error('[CRON] Error sending expiry reminders:', error);
   }
 };
 
-// Run every hour
+// Run once per day at 9 AM
 const startExpiryCheck = () => {
+  // Run immediately on startup
   checkExpiredSubscriptions();
   sendExpiryReminders();
-  setInterval(() => {
-    checkExpiredSubscriptions();
-    sendExpiryReminders();
-  }, 60 * 60 * 1000);
-  console.log('[CRON] Expiry check scheduled (every hour)');
+  
+  // Schedule to run daily at 9 AM
+  const scheduleDaily = () => {
+    const now = new Date();
+    const scheduledTime = new Date();
+    scheduledTime.setHours(9, 0, 0, 0); // 9:00 AM
+    
+    // If it's already past 9 AM today, schedule for tomorrow
+    if (now > scheduledTime) {
+      scheduledTime.setDate(scheduledTime.getDate() + 1);
+    }
+    
+    const timeUntilScheduled = scheduledTime.getTime() - now.getTime();
+    
+    setTimeout(() => {
+      checkExpiredSubscriptions();
+      sendExpiryReminders();
+      
+      // Schedule the next run (24 hours later)
+      setInterval(() => {
+        checkExpiredSubscriptions();
+        sendExpiryReminders();
+      }, 24 * 60 * 60 * 1000); // 24 hours
+      
+    }, timeUntilScheduled);
+    
+    console.log(`[CRON] Expiry check scheduled for ${scheduledTime.toLocaleString()}`);
+  };
+  
+  scheduleDaily();
 };
 
 module.exports = { startExpiryCheck, checkExpiredSubscriptions, sendExpiryReminders };

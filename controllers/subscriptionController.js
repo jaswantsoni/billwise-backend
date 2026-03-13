@@ -46,7 +46,8 @@ exports.webhookActivateSubscription = async (req, res) => {
         planTier: tier,
         planInterval: interval,
         planStatus: 'active',
-        planExpiry: endDate
+        planExpiry: endDate,
+        lastReminderSent: null // Clear reminder flag for new subscription period
       }
     });
 

@@ -218,7 +218,7 @@ exports.updateOrganisation = async (req, res, next) => {
 exports.updateDocumentSettings = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { invoicePrefix, invoiceCounter, creditNotePrefix, creditNoteCounter, debitNotePrefix, debitNoteCounter } = req.body;
+    const { invoicePrefix, invoiceCounter, invoiceFormat, creditNotePrefix, creditNoteCounter, creditNoteFormat, debitNotePrefix, debitNoteCounter, debitNoteFormat, challanPrefix, challanCounter, challanFormat } = req.body;
 
     const organisation = await prisma.organisation.findFirst({
       where: { id, userId: req.userId }
@@ -233,10 +233,16 @@ exports.updateDocumentSettings = async (req, res, next) => {
       data: {
         invoicePrefix,
         invoiceCounter,
+        invoiceFormat,
         creditNotePrefix,
         creditNoteCounter,
+        creditNoteFormat,
         debitNotePrefix,
-        debitNoteCounter
+        debitNoteCounter,
+        debitNoteFormat,
+        challanPrefix,
+        challanCounter,
+        challanFormat
       }
     });
 

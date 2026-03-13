@@ -39,7 +39,7 @@ const { authenticate } = require('../middleware/auth');
  *                 format: date
  *               invoiceType:
  *                 type: string
- *                 enum: [TAX_INVOICE, BILL_OF_SUPPLY, PROFORMA]
+ *                 enum: [TAX_INVOICE, BILL_OF_SUPPLY, PROFORMA, DELIVERY_CHALLAN]
  *               invoiceCopyType:
  *                 type: string
  *                 enum: [ORIGINAL, DUPLICATE, TRIPLICATE]

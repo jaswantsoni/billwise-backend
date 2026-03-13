@@ -28,6 +28,7 @@ model User {
   planExpiry     DateTime?
   freeUsageCount Int       @default(0)
   freeUsageLimit Int       @default(10)
+  lastReminderSent DateTime?
 
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -72,6 +73,9 @@ model Organisation {
   debitNotePrefix   String? @default("DN")
   debitNoteCounter  Int     @default(1)
   debitNoteFormat   String? @default("{PREFIX}/{YYYY}/{####}")
+  challanPrefix     String? @default("DC")
+  challanCounter    Int     @default(1)
+  challanFormat     String? @default("{PREFIX}/{YY}-{YY+1}/{###}")
 
   userId    String     @db.ObjectId
   user      User       @relation(fields: [userId], references: [id])

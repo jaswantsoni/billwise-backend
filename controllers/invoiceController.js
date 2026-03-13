@@ -57,7 +57,8 @@ exports.createInvoice = async (req, res) => {
       otherCharges,
       deliveryChargesTaxRate,
       freightChargesTaxRate,
-      otherChargesTaxRate
+      otherChargesTaxRate,
+      sendEmail = false
     } = req.body;
 
     const organisations = await prisma.organisation.findMany({
@@ -112,16 +113,33 @@ exports.createInvoice = async (req, res) => {
     const billState = billingAddress?.state || '';
     const isInterstate = orgState && billState && orgState !== billState;
 
-    const year = new Date().getFullYear();
-    const prefix = organisation.invoicePrefix || 'INV';
-    const counter = organisation.invoiceCounter || 1;
-    const format = organisation.invoiceFormat || '{PREFIX}-{YYYY}-{###}';
+    // Generate document number based on invoice type
+    let prefix, counter, format, counterField;
+    
+    switch (invoiceType) {
+      case 'DELIVERY_CHALLAN':
+        prefix = organisation.challanPrefix || 'DC';
+        counter = organisation.challanCounter || 1;
+        format = organisation.challanFormat || '{PREFIX}/{YY}-{YY+1}/{###}';
+        counterField = 'challanCounter';
+        break;
+      case 'TAX_INVOICE':
+      case 'BILL_OF_SUPPLY':
+      case 'PROFORMA':
+      default:
+        prefix = organisation.invoicePrefix || 'INV';
+        counter = organisation.invoiceCounter || 1;
+        format = organisation.invoiceFormat || '{PREFIX}/{YY}-{YY+1}/{###}';
+        counterField = 'invoiceCounter';
+        break;
+    }
+    
     const invoiceNumber = generateDocumentNumber(format, prefix, counter);
     
     // Update counter
     await prisma.organisation.update({
       where: { id: organisationId },
-      data: { invoiceCounter: counter + 1 }
+      data: { [counterField]: counter + 1 }
     });
 
     let calculatedSubtotal = 0;
@@ -276,14 +294,15 @@ exports.createInvoice = async (req, res) => {
 
     res.json({ success: true, data: invoice });
 
-    // Send email asynchronously (non-blocking)
-    if (customer.email) {
+    // Send email asynchronously (non-blocking) only if requested
+    if (sendEmail && customer.email) {
       sendInvoiceEmailAuto(req.userId, {
         invoiceId: invoice.id,
         customerName: customer.name,
         customerEmail: customer.email,
         companyName: organisation.name,
         invoiceNumber: invoice.invoiceNumber,
+        invoiceType: invoice.invoiceType,
         invoiceDate: new Date(invoice.invoiceDate).toLocaleDateString('en-IN'),
         dueDate: new Date(invoice.dueDate).toLocaleDateString('en-IN'),
         total: invoice.total,

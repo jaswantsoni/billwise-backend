@@ -138,7 +138,7 @@ const generateInvoiceHTML = async (invoice, organisation, billingAddress, shippi
           <p><strong>Phone:</strong> ${organisation.phone} | <strong>Email:</strong> ${organisation.email}</p>
         </div>
         
-        <div class="tax-invoice">TAX INVOICE</div>
+        <div class="tax-invoice">${invoice.invoiceType?.replace('_', ' ') || 'TAX INVOICE'}</div>
         <div class="copy-type">${invoice.invoiceCopyType}</div>
         
         <div class="meta-section">

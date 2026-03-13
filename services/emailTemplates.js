@@ -76,6 +76,7 @@ async function seedTemplates() {
         customer_name: 'Customer name',
         company_name: 'Company name',
         invoice_no: 'Invoice number',
+        invoice_type: 'Invoice type (TAX INVOICE, DELIVERY CHALLAN, etc.)',
         invoice_date: 'Invoice date',
         due_date: 'Due date',
         amount: 'Total amount',
