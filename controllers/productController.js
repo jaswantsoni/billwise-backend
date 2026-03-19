@@ -9,6 +9,12 @@ exports.createProduct = async (req, res) => {
 
     // Handle both 'price' and 'sellingPrice' fields
     const productPrice = price !== undefined ? price : sellingPrice;
+
+    // Coerce numeric fields — prevent empty string "" from reaching Prisma
+    const safeStockQty = stockQuantity !== undefined && stockQuantity !== '' ? parseFloat(stockQuantity) : 0;
+    const safeMinStock = minStock !== undefined && minStock !== '' ? parseFloat(minStock) : 0;
+    const safePurchasePrice = purchasePrice !== undefined && purchasePrice !== '' ? parseFloat(purchasePrice) : 0;
+    const safeAvgCost = avgCost !== undefined && avgCost !== '' ? parseFloat(avgCost) : 0;
     
     // Handle hsnSac field (split into hsnCode or sacCode)
     let finalHsnCode = hsnCode || '';
@@ -89,10 +95,10 @@ exports.createProduct = async (req, res) => {
           taxRate,
           currency: currency || 'INR',
           taxInclusive: taxInclusive || false,
-          purchasePrice: purchasePrice !== undefined ? purchasePrice : 0,
-          stockQuantity: stockQuantity !== undefined ? stockQuantity : 0,
-          avgCost: avgCost !== undefined ? avgCost : 0,
-          minStock: minStock !== undefined ? minStock : 0,
+          purchasePrice: safePurchasePrice,
+          stockQuantity: safeStockQty,
+          avgCost: safeAvgCost,
+          minStock: safeMinStock,
           isActive: true,
         }
       });
@@ -110,10 +116,10 @@ exports.createProduct = async (req, res) => {
           taxRate,
           currency: currency || 'INR',
           taxInclusive: taxInclusive || false,
-          purchasePrice: purchasePrice !== undefined ? purchasePrice : 0,
-          stockQuantity: stockQuantity !== undefined ? stockQuantity : 0,
-          avgCost: avgCost !== undefined ? avgCost : 0,
-          minStock: minStock !== undefined ? minStock : 0,
+          purchasePrice: safePurchasePrice,
+          stockQuantity: safeStockQty,
+          avgCost: safeAvgCost,
+          minStock: safeMinStock,
           organisationId: organisations[0].id
         }
       });

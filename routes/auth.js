@@ -86,11 +86,30 @@ router.get('/google/callback',
     passport.authenticate('google', { 
       session: false,
       callbackURL: process.env.GOOGLE_CALLBACK_URL 
+    }, (err, user, info) => {
+      if (err) {
+        console.error('[OAuth Callback] Error:', err);
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/auth/error?message=oauth_failed`);
+      }
+      
+      if (!user) {
+        console.error('[OAuth Callback] No user returned');
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/auth/error?message=user_not_found`);
+      }
+      
+      req.user = user;
+      next();
     })(req, res, next);
   },
   (req, res) => {
-    const token = jwt.sign({ userId: req.user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/auth/callback?token=${token}`);
+    try {
+      const token = jwt.sign({ userId: req.user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+      console.log(`[OAuth Callback] Success for user: ${req.user.email}`);
+      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/auth/callback?token=${token}`);
+    } catch (error) {
+      console.error('[OAuth Callback] Token generation failed:', error);
+      res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8080'}/auth/error?message=token_failed`);
+    }
   }
 );
 

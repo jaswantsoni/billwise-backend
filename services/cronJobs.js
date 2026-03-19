@@ -66,7 +66,7 @@ const sendExpiryReminders = async () => {
 
     for (const user of expiringUsers) {
       try {
-        await sendSubscriptionExpiryReminder(user);
+        // await sendSubscriptionExpiryReminder(user);
         
         // Update the lastReminderSent field to prevent duplicate emails
         await prisma.user.update({
@@ -90,13 +90,19 @@ const sendExpiryReminders = async () => {
   }
 };
 
-// Run once per day at 9 AM
+// Serverless-compatible cron job starter (no setInterval)
 const startExpiryCheck = () => {
-  // Run immediately on startup
+  // In serverless, cron jobs are handled by EventBridge
+  // This function is kept for backward compatibility with traditional deployment
+  if (process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    console.log('[CRON] Running in Lambda - cron jobs handled by EventBridge');
+    return;
+  }
+  
+  // Traditional server deployment
   checkExpiredSubscriptions();
   sendExpiryReminders();
   
-  // Schedule to run daily at 9 AM
   const scheduleDaily = () => {
     const now = new Date();
     const scheduledTime = new Date();

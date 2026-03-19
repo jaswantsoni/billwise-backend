@@ -46,10 +46,30 @@ exports.register = async (req, res) => {
       } 
     });
   } catch (error) {
+    console.error('Registration error:', error);
+    
     if (error.code === 'P2002') {
-      return res.status(400).json({ error: error });
+      // Prisma unique constraint violation
+      const field = error.meta?.target?.[0] || 'field';
+      let message = 'User already exists';
+      
+      if (field === 'email') {
+        message = 'Email already exists';
+      } else if (field === 'googleId') {
+        message = 'Google account already linked';
+      }
+      
+      return res.status(400).json({ 
+        success: false, 
+        error: message, 
+        field: field 
+      });
     }
-    res.status(500).json({ error: 'Registration failed' });
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Registration failed' 
+    });
   }
 };
 

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const invoiceController = require('../controllers/invoiceController');
-const pdfController = require('../controllers/pdfController');
+const pdfController = require('../controllers/productionPdfController'); // Updated to use production controller
 const emailController = require('../controllers/emailController');
 const { authenticate } = require('../middleware/auth');
 
@@ -180,7 +180,7 @@ router.get('/:id', authenticate, invoiceController.getInvoice);
  *               type: string
  *               format: binary
  */
-router.get('/:id/pdf', authenticate, pdfController.generateInvoicePDF);
+router.get('/:id/pdf', authenticate, pdfController.getInvoicePDF);
 
 /**
  * @swagger
@@ -235,5 +235,47 @@ router.get('/:id/pdf', authenticate, pdfController.generateInvoicePDF);
  *         description: Failed to delete invoice
  */
 router.delete('/:id', authenticate, invoiceController.deleteInvoice);
+
+/**
+ * @swagger
+ * /api/invoices/pdf/health:
+ *   get:
+ *     summary: Check PDF service health and queue status
+ *     tags: [Invoices]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: PDF service health status
+ */
+router.get('/pdf/health', authenticate, pdfController.pdfServiceHealth);
+
+/**
+ * @swagger
+ * /api/invoices/pdf/queue:
+ *   get:
+ *     summary: Get PDF queue statistics
+ *     tags: [Invoices]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Queue statistics
+ */
+router.get('/pdf/queue', authenticate, pdfController.pdfQueueStats);
+
+/**
+ * @swagger
+ * /api/invoices/pdf/queue/clear:
+ *   post:
+ *     summary: Clear PDF queue (emergency use)
+ *     tags: [Invoices]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Queue cleared successfully
+ */
+router.post('/pdf/queue/clear', authenticate, pdfController.clearPdfQueue);
 
 module.exports = router;

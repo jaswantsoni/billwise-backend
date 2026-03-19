@@ -178,9 +178,9 @@ async function updateStockOnSale(invoiceItems, organisationId, invoiceId = null)
 
       const newStockQuantity = product.stockQuantity - item.quantity;
 
-      // Check for negative stock
+      // Allow negative stock — just log a warning, don't block invoice creation
       if (newStockQuantity < 0) {
-        throw new Error(`Insufficient stock for product ${item.productId}. Current: ${product.stockQuantity}, Requested: ${item.quantity}`);
+        console.warn(`[Stock] Product ${item.productId} going negative: ${product.stockQuantity} → ${newStockQuantity}`);
       }
 
       // Update product stock (average cost remains unchanged)

@@ -19,7 +19,7 @@ const creditNoteRoutes = require('./routes/creditNote');
 const debitNoteRoutes = require('./routes/debitNote');
 const subscriptionRoutes = require('./routes/subscription');
 const userRoutes = require('./routes/user');
-const pdfController = require('./controllers/pdfController');
+const pdfController = require('./controllers/productionPdfController');
 const { startExpiryCheck } = require('./services/cronJobs');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -33,20 +33,21 @@ const supplierRoutes = require('./routes/supplier');
 const purchaseRoutes = require('./routes/purchase');
 const stockRoutes = require('./routes/stock');
 const reportRoutes = require('./routes/report');
+const pdfRoutes = require('./routes/pdf');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 const GOTENBERG_URL = process.env.GOTENBERG_URL || 'http://localhost:3001';
 
 // Keep Gotenberg awake - ping every 10 minutes
-cron.schedule('*/10 * * * *', async () => {
-  try {
-    await axios.get(`${GOTENBERG_URL}/health`, { timeout: 5000 });
-    console.log('Gotenberg keepalive ping successful');
-  } catch (err) {
-    console.log('Gotenberg keepalive ping failed (service may be sleeping)');
-  }
-});
+// cron.schedule('*/10 * * * *', async () => {
+//   try {
+//     await axios.get(`${GOTENBERG_URL}/health`, { timeout: 5000 });
+//     console.log('Gotenberg keepalive ping successful');
+//   } catch (err) {
+//     console.log('Gotenberg keepalive ping failed (service may be sleeping)');
+//   }
+// });
 
 app.use(cors({
   origin: function(origin, callback) {
@@ -110,6 +111,7 @@ app.use('/api/suppliers', supplierRoutes);
 app.use('/api/purchases', purchaseRoutes);
 app.use('/api/stock', stockRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/pdf', pdfRoutes);
 
 app.get('/public/invoice/:id/:signature', pdfController.getInvoicePDFPublic);
 
