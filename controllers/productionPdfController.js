@@ -391,8 +391,8 @@ exports.getInvoicePDF = async (req, res) => {
       const modifiedInvoice = { ...invoice, invoiceCopyType: copyType };
       const htmlContent = await generateInvoiceHTML(modifiedInvoice, organisation, billingAddress, shippingAddress);
 
-      // Log full HTML of first copy for debugging
-      if (!htmlLogged) {
+      // Log full HTML of first copy for debugging (dev only)
+      if (!htmlLogged && process.env.NODE_ENV !== 'production') {
         const fs = require('fs');
         const path = require('path');
         const logPath = path.join(__dirname, '..', 'logs', `invoice-html-${invoice.invoiceNumber}-${requestId}.html`);
@@ -548,7 +548,7 @@ exports.getInvoicePDFPublic = async (req, res) => {
       const modifiedInvoice = { ...invoice, invoiceCopyType: copyType };
       const htmlContent = await generateInvoiceHTML(modifiedInvoice, organisation, billingAddress, shippingAddress);
 
-      if (!htmlLogged) {
+      if (!htmlLogged && process.env.NODE_ENV !== 'production') {
         const fs = require('fs');
         const path = require('path');
         const logPath = path.join(__dirname, '..', 'logs', `invoice-html-${invoice.invoiceNumber}-${requestId}.html`);
