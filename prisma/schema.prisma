@@ -482,6 +482,23 @@ model DebitNoteItem {
   updatedAt     DateTime  @updatedAt
 }
 
+model GstCache {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  gstin       String   @unique
+  legalName   String
+  tradeName   String?
+  status      String?
+  addrLine1   String?
+  addrLine2   String?
+  city        String?
+  state       String?
+  stateCode   String?
+  pincode     String?
+  rawData     Json
+  fetchedAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model HSNCode {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
   hsnCode       String   @unique
