@@ -385,10 +385,27 @@ exports.getInvoicePDF = async (req, res) => {
     // Generate 4 copies and merge (same as old pdfController)
     const copies = ['ORIGINAL FOR BUYER', 'DUPLICATE FOR TRANSPORTER', 'TRIPLICATE FOR SUPPLIER', 'QUADRUPLICATE FOR RECEIVER'];
     const pdfBuffers = [];
+    let htmlLogged = false; // log only the first copy to avoid repetition
 
     for (const copyType of copies) {
       const modifiedInvoice = { ...invoice, invoiceCopyType: copyType };
       const htmlContent = await generateInvoiceHTML(modifiedInvoice, organisation, billingAddress, shippingAddress);
+
+      // Log full HTML of first copy for debugging
+      if (!htmlLogged) {
+        const fs = require('fs');
+        const path = require('path');
+        const logPath = path.join(__dirname, '..', 'logs', `invoice-html-${invoice.invoiceNumber}-${requestId}.html`);
+        try {
+          fs.mkdirSync(path.dirname(logPath), { recursive: true });
+          fs.writeFileSync(logPath, htmlContent, 'utf8');
+          console.log(`[Invoice PDF] 📄 HTML logged to: ${logPath}`);
+        } catch (e) {
+          console.log(`[Invoice PDF] 📄 HTML (inline log):\n${htmlContent}`);
+        }
+        htmlLogged = true;
+      }
+
       const pdfBuffer = await queuedPdfService.generatePdf(htmlContent, {
         paperWidth: '8.27', paperHeight: '11.7',
         marginTop: '0.39', marginBottom: '0.39',
@@ -525,10 +542,26 @@ exports.getInvoicePDFPublic = async (req, res) => {
 
     const copies = ['ORIGINAL FOR BUYER', 'DUPLICATE FOR TRANSPORTER', 'TRIPLICATE FOR SUPPLIER', 'QUADRUPLICATE FOR RECEIVER'];
     const pdfBuffers = [];
+    let htmlLogged = false;
 
     for (const copyType of copies) {
       const modifiedInvoice = { ...invoice, invoiceCopyType: copyType };
       const htmlContent = await generateInvoiceHTML(modifiedInvoice, organisation, billingAddress, shippingAddress);
+
+      if (!htmlLogged) {
+        const fs = require('fs');
+        const path = require('path');
+        const logPath = path.join(__dirname, '..', 'logs', `invoice-html-${invoice.invoiceNumber}-${requestId}.html`);
+        try {
+          fs.mkdirSync(path.dirname(logPath), { recursive: true });
+          fs.writeFileSync(logPath, htmlContent, 'utf8');
+          console.log(`[Public PDF] 📄 HTML logged to: ${logPath}`);
+        } catch (e) {
+          console.log(`[Public PDF] 📄 HTML (inline log):\n${htmlContent}`);
+        }
+        htmlLogged = true;
+      }
+
       const pdfBuffer = await queuedPdfService.generatePdf(htmlContent, {
         paperWidth: '8.27', paperHeight: '11.7',
         marginTop: '0.39', marginBottom: '0.39',
