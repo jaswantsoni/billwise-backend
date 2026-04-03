@@ -4,7 +4,7 @@ exports.createProduct = async (req, res) => {
   try {
     const { 
       name, description, sku, hsnCode, sacCode, hsnSac, unit, price, sellingPrice, taxRate, currency, taxInclusive,
-      purchasePrice, stockQuantity, avgCost, minStock
+      purchasePrice, stockQuantity, avgCost, minStock, organisationId: requestedOrgId
     } = req.body;
 
     // Handle both 'price' and 'sellingPrice' fields
@@ -61,23 +61,20 @@ exports.createProduct = async (req, res) => {
       });
     }
 
-    const organisations = await prisma.organisation.findMany({
-      where: { userId: req.userId },
-      take: 1
-    });
-
-    if (!organisations.length) {
-      return res.status(400).json({ error: 'No organisation found for user' });
+    let organisationId;
+    if (requestedOrgId) {
+      const org = await prisma.organisation.findFirst({ where: { id: requestedOrgId, userId: req.userId } });
+      if (!org) return res.status(403).json({ error: 'Organisation not found or access denied' });
+      organisationId = org.id;
+    } else {
+      const orgs = await prisma.organisation.findMany({ where: { userId: req.userId }, take: 1 });
+      if (!orgs.length) return res.status(400).json({ error: 'No organisation found for user' });
+      organisationId = orgs[0].id;
     }
 
     // Check if product with same SKU exists (including deleted)
     const existingProduct = await prisma.product.findUnique({
-      where: {
-        organisationId_sku: {
-          organisationId: organisations[0].id,
-          sku: sku
-        }
-      }
+      where: { organisationId_sku: { organisationId, sku } }
     });
 
     let product;
@@ -120,7 +117,7 @@ exports.createProduct = async (req, res) => {
           stockQuantity: safeStockQty,
           avgCost: safeAvgCost,
           minStock: safeMinStock,
-          organisationId: organisations[0].id
+          organisationId
         }
       });
     }
@@ -137,32 +134,28 @@ exports.getProducts = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
+    const requestedOrgId = req.query.organisationId;
 
-    const organisations = await prisma.organisation.findMany({
-      where: { userId: req.userId },
-      take: 1
-    });
-
-    if (!organisations.length) {
-      return res.json({ success: true, data: [], pagination: { page: 1, limit, total: 0, totalPages: 0 } });
+    // Resolve organisationId — use requested if it belongs to user, else first org
+    let organisationId;
+    if (requestedOrgId) {
+      const org = await prisma.organisation.findFirst({ where: { id: requestedOrgId, userId: req.userId } });
+      if (!org) return res.status(403).json({ error: 'Organisation not found or access denied' });
+      organisationId = org.id;
+    } else {
+      const orgs = await prisma.organisation.findMany({ where: { userId: req.userId }, take: 1 });
+      if (!orgs.length) return res.json({ success: true, data: [], pagination: { page: 1, limit, total: 0, totalPages: 0 } });
+      organisationId = orgs[0].id;
     }
 
     const [products, total] = await Promise.all([
       prisma.product.findMany({
-        where: { 
-          organisationId: organisations[0].id,
-          isActive: true
-        },
+        where: { organisationId, isActive: true },
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' }
       }),
-      prisma.product.count({ 
-        where: { 
-          organisationId: organisations[0].id,
-          isActive: true
-        }
-      })
+      prisma.product.count({ where: { organisationId, isActive: true } })
     ]);
 
     // Add low stock indicator to each product
@@ -266,20 +259,22 @@ exports.updateProduct = async (req, res) => {
 
 exports.searchProducts = async (req, res) => {
   try {
-    const { query } = req.query;
+    const { query, organisationId: requestedOrgId } = req.query;
 
-    const organisations = await prisma.organisation.findMany({
-      where: { userId: req.userId },
-      take: 1
-    });
-    
-    if (!organisations.length) {
-      return res.json({ success: true, data: [] });
+    let organisationId;
+    if (requestedOrgId) {
+      const org = await prisma.organisation.findFirst({ where: { id: requestedOrgId, userId: req.userId } });
+      if (!org) return res.json({ success: true, data: [] });
+      organisationId = org.id;
+    } else {
+      const orgs = await prisma.organisation.findMany({ where: { userId: req.userId }, take: 1 });
+      if (!orgs.length) return res.json({ success: true, data: [] });
+      organisationId = orgs[0].id;
     }
 
     const products = await prisma.product.findMany({
       where: {
-        organisationId: organisations[0].id,
+        organisationId,
         isActive: true,
         OR: [
           { name: { contains: query, mode: 'insensitive' } },
@@ -334,6 +329,10 @@ exports.bulkUploadProducts = async (req, res) => {
       return res.status(400).json({ error: 'No organisation found for user' });
     }
 
+    const orgId = req.body.organisationId
+      ? (await prisma.organisation.findFirst({ where: { id: req.body.organisationId, userId: req.userId } }))?.id || organisations[0].id
+      : organisations[0].id;
+
     const xlsx = require('xlsx');
     const workbook = xlsx.read(file.buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
@@ -356,7 +355,7 @@ exports.bulkUploadProducts = async (req, res) => {
       stockQuantity: p.stockQuantity ? parseFloat(p.stockQuantity) : 0,
       avgCost: p.avgCost ? parseFloat(p.avgCost) : 0,
       minStock: p.minStock ? parseFloat(p.minStock) : 0,
-      organisationId: organisations[0].id
+      organisationId: orgId
     }));
 
     const createdProducts = await prisma.product.createMany({

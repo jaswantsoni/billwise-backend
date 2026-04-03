@@ -24,6 +24,7 @@ exports.createInvoice = async (req, res) => {
     wakeUpGotenberg().catch(() => {});
     const {
       customerId,
+      organisationId: requestedOrgId,
       billingAddressId,
       shippingAddressId,
       invoiceDate,
@@ -70,8 +71,18 @@ exports.createInvoice = async (req, res) => {
       return res.status(400).json({ success: false, error: 'No organisation found' });
     }
 
-    const organisationId = organisations[0].id;
-    const organisation = organisations[0];
+    // Use requested organisationId if provided and it belongs to this user, else fall back to first
+    let organisation;
+    if (requestedOrgId) {
+      organisation = organisations.find(o => o.id === requestedOrgId)
+        || await prisma.organisation.findFirst({ where: { id: requestedOrgId, userId: req.userId } });
+      if (!organisation) {
+        return res.status(403).json({ success: false, error: 'Organisation not found or access denied' });
+      }
+    } else {
+      organisation = organisations[0];
+    }
+    const organisationId = organisation.id;
 
     const customer = await prisma.customer.findFirst({
       where: { id: customerId, organisationId }
@@ -363,18 +374,20 @@ exports.getInvoices = async (req, res) => {
 exports.getInvoice = async (req, res) => {
   try {
     const { id } = req.params;
+    const requestedOrgId = req.query.organisationId;
 
-    const organisations = await prisma.organisation.findMany({
-      where: { userId: req.userId },
-      take: 1
-    });
+    // Verify org belongs to user
+    const orgWhere = requestedOrgId
+      ? { id: requestedOrgId, userId: req.userId }
+      : { userId: req.userId };
+    const organisation = await prisma.organisation.findFirst({ where: orgWhere });
 
-    if (!organisations.length) {
+    if (!organisation) {
       return res.status(404).json({ success: false, error: 'Invoice not found' });
     }
 
     const invoice = await prisma.invoice.findFirst({
-      where: { id, organisationId: organisations[0].id },
+      where: { id, organisationId: organisation.id },
       include: {
         items: {
           include: {
@@ -411,17 +424,18 @@ exports.getInvoice = async (req, res) => {
 exports.deleteInvoice = async (req, res) => {
   try {
     const { id } = req.params;
+    const requestedOrgId = req.query.organisationId || req.body.organisationId;
 
-    const organisations = await prisma.organisation.findMany({
-      where: { userId: req.userId },
-      take: 1
-    });
+    const orgWhere = requestedOrgId
+      ? { id: requestedOrgId, userId: req.userId }
+      : { userId: req.userId };
+    const organisation = await prisma.organisation.findFirst({ where: orgWhere });
 
-    if (!organisations.length) {
+    if (!organisation) {
       return res.status(404).json({ success: false, error: 'Invoice not found' });
     }
 
-    const organisationId = organisations[0].id;
+    const organisationId = organisation.id;
 
     // Fetch the invoice with items
     const invoice = await prisma.invoice.findFirst({
