@@ -139,20 +139,20 @@ exports.getInvoicePDF = async (req, res) => {
 
   try {
     const { id } = req.params;
-    const templateId = req.query.template || 'classic';
-
-    console.log(`[Invoice PDF] 📄 Request ${requestId} - Generating PDF (template: ${templateId}) for invoice ${id}`);
 
     const organisations = await prisma.organisation.findMany({ where: { userId: req.userId }, take: 1 });
     if (!organisations.length) return res.status(400).json({ error: 'No organisation found' });
 
     const organisationId = organisations[0].id;
+    const organisation = await prisma.organisation.findUnique({ where: { id: organisationId } });
+    if (!organisation) return res.status(404).json({ error: 'Organisation not found' });
+
+    const templateId = req.query.template || organisation.defaultTemplate || 'classic';
+
+    console.log(`[Invoice PDF] 📄 Request ${requestId} - Generating PDF (template: ${templateId}) for invoice ${id}`);
 
     const invoice = await fetchInvoiceData({ where: { id, organisationId } }, requestId, 'Invoice PDF');
     if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
-
-    const organisation = await prisma.organisation.findUnique({ where: { id: organisationId } });
-    if (!organisation) return res.status(404).json({ error: 'Organisation not found' });
 
     let billingAddress = null, shippingAddress = null;
     if (invoice.billingAddressId) billingAddress = await prisma.address.findUnique({ where: { id: invoice.billingAddressId } });

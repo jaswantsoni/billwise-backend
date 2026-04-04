@@ -318,3 +318,27 @@ exports.deleteLogo = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.updateDefaultTemplate = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { template } = req.body;
+
+    const validTemplates = ['classic', 'modern', 'minimal', 'professional', 'compact', 'elegant'];
+    if (!validTemplates.includes(template)) {
+      return res.status(400).json({ success: false, error: `Invalid template. Choose from: ${validTemplates.join(', ')}` });
+    }
+
+    const organisation = await prisma.organisation.findFirst({ where: { id, userId: req.userId } });
+    if (!organisation) return res.status(404).json({ success: false, error: 'Organisation not found' });
+
+    const updated = await prisma.organisation.update({
+      where: { id },
+      data: { defaultTemplate: template }
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -16,5 +16,6 @@ router.put('/:id', authenticate, organisationController.updateOrganisation);
 router.put('/:id/document-settings', authenticate, organisationController.updateDocumentSettings);
 router.post('/:id/logo', authenticate, upload.single('logo'), organisationController.uploadLogo);
 router.delete('/:id/logo', authenticate, organisationController.deleteLogo);
+router.patch('/:id/template', authenticate, organisationController.updateDefaultTemplate);
 
 module.exports = router;

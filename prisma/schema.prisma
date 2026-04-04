@@ -67,6 +67,7 @@ model Organisation {
   invoicePrefix     String  @default("INV")
   invoiceCounter    Int     @default(1)
   invoiceFormat     String? @default("{PREFIX}/{YY}-{YY+1}/{###}")
+  defaultTemplate   String? @default("classic")
   creditNotePrefix  String? @default("CN")
   creditNoteCounter Int     @default(1)
   creditNoteFormat  String? @default("{PREFIX}/{YYYY}/{####}")
