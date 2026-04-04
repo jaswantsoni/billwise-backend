@@ -4,7 +4,7 @@ const QRCode = require('qrcode');
 const crypto = require('crypto');
 const { PDFDocument } = require('pdf-lib');
 const queuedPdfService = require('../services/queuedPdfService');
-const { getTemplate, listTemplates } = require('../services/invoiceTemplates');
+const { getTemplate, listTemplates } = require('./invoiceTemplates');
 
 const STATE_CODES = {
   'Andhra Pradesh': '37', 'Arunachal Pradesh': '12', 'Assam': '18', 'Bihar': '10',

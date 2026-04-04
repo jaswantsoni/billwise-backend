@@ -278,4 +278,6 @@ router.get('/pdf/queue', authenticate, pdfController.pdfQueueStats);
  */
 router.post('/pdf/queue/clear', authenticate, pdfController.clearPdfQueue);
 
+router.get('/templates', authenticate, pdfController.getInvoiceTemplates);
+
 module.exports = router;
