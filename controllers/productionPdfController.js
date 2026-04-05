@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { PDFDocument } = require('pdf-lib');
 const queuedPdfService = require('../services/queuedPdfService');
 const { getTemplate, listTemplates } = require('../services/invoiceTemplates');
+const customTemplateCtrl = require('./customTemplateController');
 
 const STATE_CODES = {
   'Andhra Pradesh': '37', 'Arunachal Pradesh': '12', 'Assam': '18', 'Bihar': '10',
@@ -148,6 +149,20 @@ exports.getInvoicePDF = async (req, res) => {
     if (!organisation) return res.status(404).json({ error: 'Organisation not found' });
 
     const templateId = req.query.template || organisation.defaultTemplate || 'classic';
+
+    // Check if org has a custom template set as default — use it instead
+    if (!req.query.template && organisation.defaultCustomTemplateId) {
+      const customTemplate = await prisma.customTemplate.findUnique({
+        where: { id: organisation.defaultCustomTemplateId }
+      });
+      if (customTemplate) {
+        const withBackground = req.query.bg !== undefined ? req.query.bg !== 'false' : (organisation.defaultCustomTemplateBg === true);
+        req.params.id = organisation.defaultCustomTemplateId;
+        req.query.invoiceId = id;
+        req.query.bg = withBackground ? 'true' : 'false';
+        return customTemplateCtrl.generateTemplatePdf(req, res);
+      }
+    }
 
     console.log(`[Invoice PDF] 📄 Request ${requestId} - Generating PDF (template: ${templateId}) for invoice ${id}`);
 

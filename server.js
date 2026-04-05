@@ -32,6 +32,7 @@ const purchaseRoutes = require('./routes/purchase');
 const stockRoutes = require('./routes/stock');
 const reportRoutes = require('./routes/report');
 const pdfRoutes = require('./routes/pdf');
+const customTemplateRoutes = require('./routes/customTemplate');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -61,7 +62,8 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-GST-Cookie']
 }));
-app.use(express.json());
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 app.use(express.static('public'));
 app.use(session({
   secret: process.env.SESSION_SECRET || 'fallback-secret-key-change-in-production',
@@ -100,6 +102,8 @@ app.use('/api/purchases', purchaseRoutes);
 app.use('/api/stock', stockRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/pdf', pdfRoutes);
+app.use('/api/custom-templates', customTemplateRoutes);
+app.use('/api/feedback', require('./routes/feedback'));
 
 app.get('/public/invoice/:id/:signature', pdfController.getInvoicePDFPublic);
 

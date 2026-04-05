@@ -67,7 +67,9 @@ model Organisation {
   invoicePrefix     String  @default("INV")
   invoiceCounter    Int     @default(1)
   invoiceFormat     String? @default("{PREFIX}/{YY}-{YY+1}/{###}")
-  defaultTemplate   String? @default("classic")
+  defaultTemplate        String? @default("classic")
+  defaultCustomTemplateId String? @db.ObjectId
+  defaultCustomTemplateBg Boolean? @default(false)
   creditNotePrefix  String? @default("CN")
   creditNoteCounter Int     @default(1)
   creditNoteFormat  String? @default("{PREFIX}/{YYYY}/{####}")
@@ -481,6 +483,19 @@ model DebitNoteItem {
   taxAmount     Float
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+model CustomTemplate {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  backgroundImage String?
+  fields          Json     @default("[]")
+  paperSize       String   @default("A4")
+  organisationId  String   @db.ObjectId
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organisationId])
 }
 
 model GstCache {
