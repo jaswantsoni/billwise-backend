@@ -479,28 +479,160 @@ exports.deleteInvoice = async (req, res) => {
 exports.updateInvoice = async (req, res) => {
   try {
     const { id } = req.params;
-    const { notes, termsConditions, declaration, paymentInstructions, dueDate, paymentMethod, paymentTerms, status } = req.body;
+    const {
+      customerId, billingAddressId, shippingAddressId,
+      invoiceDate, dueDate, invoiceType, invoiceCopyType,
+      placeOfSupply, reverseCharge,
+      items,
+      notes, termsConditions, declaration, paymentInstructions,
+      deliveryInstructions, returnPolicy, lateFeePolicy, warrantyInfo, supportContact,
+      modeOfDelivery, vehicleNumber, transportName, lrNumber, ewayBillNumber,
+      placeOfDelivery, deliveryDate, freightTerms,
+      paymentMethod, paymentTerms,
+      deliveryCharges, freightCharges, otherCharges,
+      deliveryChargesTaxRate, freightChargesTaxRate, otherChargesTaxRate,
+    } = req.body;
 
     const organisations = await prisma.organisation.findMany({ where: { userId: req.userId }, take: 1 });
     if (!organisations.length) return res.status(404).json({ success: false, error: 'Invoice not found' });
+    const organisationId = organisations[0].id;
+    const organisation = organisations[0];
 
-    const invoice = await prisma.invoice.findFirst({
-      where: { id, organisationId: organisations[0].id }
+    const existing = await prisma.invoice.findFirst({
+      where: { id, organisationId },
+      include: { items: true }
     });
-    if (!invoice) return res.status(404).json({ success: false, error: 'Invoice not found' });
+    if (!existing) return res.status(404).json({ success: false, error: 'Invoice not found' });
 
+    // If items are being updated, recalculate totals
+    let updateData = {
+      ...(customerId && { customerId }),
+      ...(billingAddressId !== undefined && { billingAddressId }),
+      ...(shippingAddressId !== undefined && { shippingAddressId }),
+      ...(invoiceDate && { invoiceDate: new Date(invoiceDate) }),
+      ...(dueDate && { dueDate: new Date(dueDate) }),
+      ...(invoiceType && { invoiceType }),
+      ...(invoiceCopyType && { invoiceCopyType }),
+      ...(placeOfSupply !== undefined && { placeOfSupply }),
+      ...(reverseCharge !== undefined && { reverseCharge }),
+      ...(notes !== undefined && { notes }),
+      ...(termsConditions !== undefined && { termsConditions }),
+      ...(declaration !== undefined && { declaration }),
+      ...(paymentInstructions !== undefined && { paymentInstructions }),
+      ...(deliveryInstructions !== undefined && { deliveryInstructions }),
+      ...(returnPolicy !== undefined && { returnPolicy }),
+      ...(lateFeePolicy !== undefined && { lateFeePolicy }),
+      ...(warrantyInfo !== undefined && { warrantyInfo }),
+      ...(supportContact !== undefined && { supportContact }),
+      ...(modeOfDelivery && { modeOfDelivery }),
+      ...(vehicleNumber !== undefined && { vehicleNumber }),
+      ...(transportName !== undefined && { transportName }),
+      ...(lrNumber !== undefined && { lrNumber }),
+      ...(ewayBillNumber !== undefined && { ewayBillNumber }),
+      ...(placeOfDelivery !== undefined && { placeOfDelivery }),
+      ...(deliveryDate !== undefined && { deliveryDate: deliveryDate ? new Date(deliveryDate) : null }),
+      ...(freightTerms && { freightTerms }),
+      ...(paymentMethod !== undefined && { paymentMethod }),
+      ...(paymentTerms !== undefined && { paymentTerms }),
+      ...(deliveryCharges !== undefined && { deliveryCharges: deliveryCharges || 0 }),
+      ...(freightCharges !== undefined && { freightCharges: freightCharges || 0 }),
+      ...(otherCharges !== undefined && { otherCharges: otherCharges || 0 }),
+    };
+
+    if (items && items.length > 0) {
+      // Determine interstate
+      let billingAddress = null;
+      const billAddrId = billingAddressId || existing.billingAddressId;
+      if (billAddrId) billingAddress = await prisma.address.findUnique({ where: { id: billAddrId } });
+      const orgState = organisation.state || '';
+      const billState = billingAddress?.state || '';
+      const isInterstate = orgState && billState && orgState !== billState;
+
+      let calculatedSubtotal = 0, calculatedTotalTax = 0;
+      let totalCGST = 0, totalSGST = 0, totalIGST = 0;
+
+      const validatedItems = await Promise.all(items.map(async item => {
+        const product = await prisma.product.findUnique({ where: { id: item.productId } });
+        const itemRate = item.rate;
+        const itemTaxRate = item.taxRate;
+        const isTaxInclusive = item.taxInclusive || false;
+        let itemAmount, itemTaxAmount;
+        if (isTaxInclusive) {
+          const totalWithTax = item.quantity * itemRate;
+          itemAmount = totalWithTax / (1 + itemTaxRate / 100);
+          itemTaxAmount = totalWithTax - itemAmount;
+        } else {
+          itemAmount = item.quantity * itemRate;
+          itemTaxAmount = itemAmount * (itemTaxRate / 100);
+        }
+        calculatedSubtotal += itemAmount;
+        calculatedTotalTax += itemTaxAmount;
+        let cgst = 0, sgst = 0, igst = 0;
+        if (isInterstate) { igst = itemTaxAmount; totalIGST += igst; }
+        else { cgst = itemTaxAmount / 2; sgst = itemTaxAmount / 2; totalCGST += cgst; totalSGST += sgst; }
+        return {
+          productId: item.productId,
+          description: item.description,
+          hsnSac: item.hsnSac || product?.hsnCode || product?.sacCode || '',
+          quantity: item.quantity,
+          unit: item.unit || product?.unit || 'PCS',
+          rate: itemRate,
+          discount: item.discount || 0,
+          taxRate: itemTaxRate,
+          taxInclusive: isTaxInclusive,
+          cgst, sgst, igst,
+          amount: itemAmount,
+          taxAmount: itemTaxAmount,
+          costPrice: product?.avgCost || 0,
+          profit: (itemRate - (product?.avgCost || 0)) * item.quantity,
+        };
+      }));
+
+      const deliveryTax = (deliveryCharges || 0) * ((deliveryChargesTaxRate || 0) / 100);
+      const freightTax = (freightCharges || 0) * ((freightChargesTaxRate || 0) / 100);
+      const otherTax = (otherCharges || 0) * ((otherChargesTaxRate || 0) / 100);
+      const totalChargesTax = deliveryTax + freightTax + otherTax;
+      if (totalChargesTax > 0) {
+        if (isInterstate) totalIGST += totalChargesTax;
+        else { totalCGST += totalChargesTax / 2; totalSGST += totalChargesTax / 2; }
+        calculatedTotalTax += totalChargesTax;
+      }
+      const extraCharges = (deliveryCharges || 0) + (freightCharges || 0) + (otherCharges || 0);
+      const calculatedTotal = calculatedSubtotal + calculatedTotalTax + extraCharges;
+
+      // Reverse old stock, apply new stock
+      await stockService.reverseStockOnSaleDelete(existing.items, organisationId, id);
+
+      // Delete old items and create new ones
+      await prisma.invoiceItem.deleteMany({ where: { invoiceId: id } });
+
+      updateData = {
+        ...updateData,
+        subtotal: calculatedSubtotal,
+        cgst: totalCGST, sgst: totalSGST, igst: totalIGST,
+        deliveryChargesTax: deliveryTax, freightChargesTax: freightTax, otherChargesTax: otherTax,
+        totalTax: calculatedTotalTax,
+        total: calculatedTotal,
+        balanceAmount: calculatedTotal - (existing.paidAmount || 0),
+        items: { create: validatedItems },
+      };
+
+      const updated = await prisma.invoice.update({
+        where: { id },
+        data: updateData,
+        include: { items: { include: { product: true } }, customer: true }
+      });
+
+      // Apply new stock
+      await stockService.updateStockOnSale(validatedItems, organisationId, id);
+
+      return res.json({ success: true, data: updated });
+    }
+
+    // No items update — just update fields
     const updated = await prisma.invoice.update({
       where: { id },
-      data: {
-        ...(notes !== undefined && { notes }),
-        ...(termsConditions !== undefined && { termsConditions }),
-        ...(declaration !== undefined && { declaration }),
-        ...(paymentInstructions !== undefined && { paymentInstructions }),
-        ...(dueDate && { dueDate: new Date(dueDate) }),
-        ...(paymentMethod && { paymentMethod }),
-        ...(paymentTerms && { paymentTerms }),
-        ...(status && { status }),
-      },
+      data: updateData,
       include: { items: { include: { product: true } }, customer: true }
     });
 
