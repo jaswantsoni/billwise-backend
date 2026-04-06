@@ -181,59 +181,8 @@ router.get('/:id', authenticate, invoiceController.getInvoice);
  *               format: binary
  */
 router.get('/:id/pdf', authenticate, pdfController.getInvoicePDF);
-
-/**
- * @swagger
- * /api/invoices/{id}/send:
- *   post:
- *     summary: Send invoice via email
- *     tags: [Invoices]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               email:
- *                 type: string
- *                 description: Override customer email
- *     responses:
- *       200:
- *         description: Invoice sent successfully
- */
-// TODO: Implement sendInvoiceByEmail function
-// router.post('/:id/send', authenticate, emailController.sendInvoiceByEmail);
-
-/**
- * @swagger
- * /api/invoices/{id}:
- *   delete:
- *     summary: Delete an invoice and restore stock
- *     tags: [Invoices]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Invoice deleted successfully
- *       404:
- *         description: Invoice not found
- *       500:
- *         description: Failed to delete invoice
- */
+router.put('/:id', authenticate, invoiceController.updateInvoice);
+router.patch('/:id/cancel', authenticate, invoiceController.cancelInvoice);
 router.delete('/:id', authenticate, invoiceController.deleteInvoice);
 
 /**

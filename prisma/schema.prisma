@@ -138,8 +138,9 @@ model Purchase {
   paymentStatus String @default("UNPAID")
   paidAmount    Float  @default(0)
 
-  status String  @default("DRAFT")
-  notes  String?
+  status        String  @default("DRAFT")
+  notes         String?
+  invoiceImage  String?  // Cloudinary URL of uploaded purchase invoice photo
 
   organisationId String         @db.ObjectId
   items          PurchaseItem[]

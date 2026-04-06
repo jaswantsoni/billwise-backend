@@ -475,3 +475,72 @@ exports.deleteInvoice = async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to delete invoice', details: error.message });
   }
 };
+
+exports.updateInvoice = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { notes, termsConditions, declaration, paymentInstructions, dueDate, paymentMethod, paymentTerms, status } = req.body;
+
+    const organisations = await prisma.organisation.findMany({ where: { userId: req.userId }, take: 1 });
+    if (!organisations.length) return res.status(404).json({ success: false, error: 'Invoice not found' });
+
+    const invoice = await prisma.invoice.findFirst({
+      where: { id, organisationId: organisations[0].id }
+    });
+    if (!invoice) return res.status(404).json({ success: false, error: 'Invoice not found' });
+
+    const updated = await prisma.invoice.update({
+      where: { id },
+      data: {
+        ...(notes !== undefined && { notes }),
+        ...(termsConditions !== undefined && { termsConditions }),
+        ...(declaration !== undefined && { declaration }),
+        ...(paymentInstructions !== undefined && { paymentInstructions }),
+        ...(dueDate && { dueDate: new Date(dueDate) }),
+        ...(paymentMethod && { paymentMethod }),
+        ...(paymentTerms && { paymentTerms }),
+        ...(status && { status }),
+      },
+      include: { items: { include: { product: true } }, customer: true }
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    console.error('Update invoice error:', error);
+    res.status(500).json({ success: false, error: 'Failed to update invoice', details: error.message });
+  }
+};
+
+exports.cancelInvoice = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const organisations = await prisma.organisation.findMany({ where: { userId: req.userId }, take: 1 });
+    if (!organisations.length) return res.status(404).json({ success: false, error: 'Invoice not found' });
+
+    const organisationId = organisations[0].id;
+    const invoice = await prisma.invoice.findFirst({
+      where: { id, organisationId },
+      include: { items: true }
+    });
+    if (!invoice) return res.status(404).json({ success: false, error: 'Invoice not found' });
+    if (invoice.status === 'CANCELLED') return res.status(400).json({ success: false, error: 'Invoice is already cancelled' });
+
+    // Restore stock
+    try {
+      await stockService.reverseStockOnSaleDelete(invoice.items, organisationId, invoice.id);
+    } catch (e) {
+      console.warn('[Cancel Invoice] Stock reversal warning:', e.message);
+    }
+
+    const updated = await prisma.invoice.update({
+      where: { id },
+      data: { status: 'CANCELLED' }
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    console.error('Cancel invoice error:', error);
+    res.status(500).json({ success: false, error: 'Failed to cancel invoice', details: error.message });
+  }
+};

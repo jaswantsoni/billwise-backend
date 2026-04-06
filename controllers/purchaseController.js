@@ -706,3 +706,80 @@ exports.finalizePurchase = async (req, res) => {
 
 // Alias for getPurchase to match design document naming
 exports.getPurchaseById = exports.getPurchase;
+
+/**
+ * Update payment status of a purchase
+ */
+exports.updatePaymentStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { paymentStatus, paidAmount, paymentMode } = req.body;
+
+    const organisations = await prisma.organisation.findMany({ where: { userId: req.userId }, take: 1 });
+    if (!organisations.length) return res.status(404).json({ success: false, error: 'Purchase not found' });
+
+    const purchase = await prisma.purchase.findFirst({
+      where: { id, organisationId: organisations[0].id }
+    });
+    if (!purchase) return res.status(404).json({ success: false, error: 'Purchase not found' });
+
+    const updated = await prisma.purchase.update({
+      where: { id },
+      data: {
+        ...(paymentStatus && { paymentStatus }),
+        ...(paidAmount !== undefined && { paidAmount: parseFloat(paidAmount) }),
+        ...(paymentMode && { paymentMode }),
+      },
+      include: { supplier: true, items: { include: { product: true } } }
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    console.error('Update payment status error:', error);
+    res.status(500).json({ success: false, error: 'Failed to update payment status', details: error.message });
+  }
+};
+
+/**
+ * Upload purchase invoice image to Cloudinary
+ */
+exports.uploadInvoiceImage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { imageBase64 } = req.body;
+
+    if (!imageBase64) return res.status(400).json({ error: 'imageBase64 is required' });
+
+    const organisations = await prisma.organisation.findMany({ where: { userId: req.userId }, take: 1 });
+    if (!organisations.length) return res.status(404).json({ error: 'Purchase not found' });
+
+    const purchase = await prisma.purchase.findFirst({
+      where: { id, organisationId: organisations[0].id }
+    });
+    if (!purchase) return res.status(404).json({ error: 'Purchase not found' });
+
+    // Upload to Cloudinary
+    const cloudinary = require('cloudinary').v2;
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+    });
+
+    const result = await cloudinary.uploader.upload(imageBase64, {
+      folder: 'kampony/purchase-invoices',
+      resource_type: 'image',
+      public_id: `purchase-${id}-${Date.now()}`,
+    });
+
+    const updated = await prisma.purchase.update({
+      where: { id },
+      data: { invoiceImage: result.secure_url }
+    });
+
+    res.json({ success: true, imageUrl: result.secure_url, data: updated });
+  } catch (error) {
+    console.error('Upload invoice image error:', error);
+    res.status(500).json({ error: 'Failed to upload image', details: error.message });
+  }
+};

@@ -104,6 +104,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/pdf', pdfRoutes);
 app.use('/api/custom-templates', customTemplateRoutes);
 app.use('/api/feedback', require('./routes/feedback'));
+app.use('/api/data', require('./routes/dataExport'));
 
 app.get('/public/invoice/:id/:signature', pdfController.getInvoicePDFPublic);
 

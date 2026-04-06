@@ -79,7 +79,15 @@ exports.createProduct = async (req, res) => {
 
     let product;
     if (existingProduct) {
-      // Restore and update the product
+      if (existingProduct.isActive) {
+        // Active product with same SKU already exists — reject
+        return res.status(400).json({
+          success: false,
+          error: `A product with SKU "${sku}" already exists. Use a different SKU or edit the existing product.`,
+          code: 'DUPLICATE_SKU'
+        });
+      }
+      // Inactive (soft-deleted) product — restore and update it
       product = await prisma.product.update({
         where: { id: existingProduct.id },
         data: {

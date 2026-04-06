@@ -223,5 +223,7 @@ router.delete('/:id', authenticate, purchaseController.deletePurchase);
  *         description: Purchase finalized successfully
  */
 router.post('/:id/finalize', authenticate, purchaseController.finalizePurchase);
+router.patch('/:id/payment', authenticate, purchaseController.updatePaymentStatus);
+router.post('/:id/invoice-image', authenticate, purchaseController.uploadInvoiceImage);
 
 module.exports = router;
