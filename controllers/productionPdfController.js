@@ -141,12 +141,14 @@ exports.getInvoicePDF = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const organisations = await prisma.organisation.findMany({ where: { userId: req.userId }, take: 1 });
-    if (!organisations.length) return res.status(400).json({ error: 'No organisation found' });
+    // Find invoice first, then verify org belongs to user
+    const invoiceCheck = await prisma.invoice.findUnique({ where: { id }, select: { organisationId: true } });
+    if (!invoiceCheck) return res.status(404).json({ error: 'Invoice not found' });
 
-    const organisationId = organisations[0].id;
-    const organisation = await prisma.organisation.findUnique({ where: { id: organisationId } });
-    if (!organisation) return res.status(404).json({ error: 'Organisation not found' });
+    const organisation = await prisma.organisation.findFirst({ where: { id: invoiceCheck.organisationId, userId: req.userId } });
+    if (!organisation) return res.status(403).json({ error: 'Access denied' });
+
+    const organisationId = organisation.id;
 
     const templateId = req.query.template || organisation.defaultTemplate || 'classic';
 
