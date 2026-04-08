@@ -9,9 +9,10 @@ exports.getGSTDetails = async (req, res) => {
       return res.status(400).json({ error: 'Invalid GSTIN format' });
     }
 
-    // 1. Check dedicated GST cache table
-    const cached = await prisma.gstCache.findUnique({ where: { gstin } });
-    if (cached) {
+    // 1. Check dedicated GST cache table (skip if refresh=true or cache has no name)
+    const forceRefresh = req.query.refresh === 'true';
+    const cached = !forceRefresh && await prisma.gstCache.findUnique({ where: { gstin } });
+    if (cached && cached.legalName) {
       return res.json({
         success: true,
         source: 'cache',
@@ -98,8 +99,8 @@ exports.getGSTDetails = async (req, res) => {
       pincode: addr.pncd || ''
     };
 
-    // Save to cache for future lookups
-    if (gstData) {
+    // Save to cache only if we got real data
+    if (gstData && (gstData.lgnm || gstData.tradeNam)) {
       prisma.gstCache.upsert({
         where: { gstin },
         update: {
