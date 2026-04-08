@@ -3,15 +3,17 @@ const axios = require('axios');
 
 exports.createCustomer = async (req, res) => {
   try {
-    const { name, gstin, email, phone, addresses } = req.body;
+    const { name, gstin, email, phone, addresses, organisationId: requestedOrgId } = req.body;
 
-    const organisations = await prisma.organisation.findMany({
-      where: { userId: req.userId },
-      take: 1
-    });
-
-    if (!organisations.length) {
-      return res.status(400).json({ error: 'No organisation found for user' });
+    let organisationId;
+    if (requestedOrgId) {
+      const org = await prisma.organisation.findFirst({ where: { id: requestedOrgId, userId: req.userId } });
+      if (!org) return res.status(403).json({ error: 'Organisation not found or access denied' });
+      organisationId = org.id;
+    } else {
+      const orgs = await prisma.organisation.findMany({ where: { userId: req.userId }, take: 1 });
+      if (!orgs.length) return res.status(400).json({ error: 'No organisation found for user' });
+      organisationId = orgs[0].id;
     }
 
     let gstData = null;
@@ -48,7 +50,7 @@ exports.createCustomer = async (req, res) => {
         gstin,
         email: email || '',
         phone: phone || '',
-        organisationId: organisations[0].id,
+        organisationId: organisationId,
         addresses: {
           create: addressData
         }

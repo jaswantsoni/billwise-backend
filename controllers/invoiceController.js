@@ -82,7 +82,10 @@ exports.createInvoice = async (req, res) => {
     const organisationId = organisation.id;
 
     const customer = await prisma.customer.findFirst({
-      where: { id: customerId, organisationId }
+      where: {
+        id: customerId,
+        organisation: { userId: req.userId }
+      }
     });
 
     if (!customer) {

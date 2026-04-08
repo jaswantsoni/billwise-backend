@@ -122,111 +122,18 @@ const { authenticate } = require('../middleware/auth');
  *         description: Invoice created successfully
  */
 router.post('/', authenticate, invoiceController.createInvoice);
-
-/**
- * @swagger
- * /api/invoices:
- *   get:
- *     summary: Get all invoices
- *     tags: [Invoices]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: List of invoices
- */
 router.get('/', authenticate, invoiceController.getInvoices);
 
-/**
- * @swagger
- * /api/invoices/{id}:
- *   get:
- *     summary: Get invoice by ID
- *     tags: [Invoices]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Invoice details
- */
-router.get('/:id', authenticate, invoiceController.getInvoice);
+// Specific sub-routes MUST come before /:id to avoid being swallowed
+router.get('/templates', authenticate, pdfController.getInvoiceTemplates);
+router.get('/pdf/health', authenticate, pdfController.pdfServiceHealth);
+router.get('/pdf/queue', authenticate, pdfController.pdfQueueStats);
+router.post('/pdf/queue/clear', authenticate, pdfController.clearPdfQueue);
 
-/**
- * @swagger
- * /api/invoices/{id}/pdf:
- *   get:
- *     summary: Generate invoice PDF
- *     tags: [Invoices]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: PDF generated successfully
- *         content:
- *           application/pdf:
- *             schema:
- *               type: string
- *               format: binary
- */
 router.get('/:id/pdf', authenticate, pdfController.getInvoicePDF);
+router.get('/:id', authenticate, invoiceController.getInvoice);
 router.put('/:id', authenticate, invoiceController.updateInvoice);
 router.patch('/:id/cancel', authenticate, invoiceController.cancelInvoice);
 router.delete('/:id', authenticate, invoiceController.deleteInvoice);
-
-/**
- * @swagger
- * /api/invoices/pdf/health:
- *   get:
- *     summary: Check PDF service health and queue status
- *     tags: [Invoices]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: PDF service health status
- */
-router.get('/pdf/health', authenticate, pdfController.pdfServiceHealth);
-
-/**
- * @swagger
- * /api/invoices/pdf/queue:
- *   get:
- *     summary: Get PDF queue statistics
- *     tags: [Invoices]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Queue statistics
- */
-router.get('/pdf/queue', authenticate, pdfController.pdfQueueStats);
-
-/**
- * @swagger
- * /api/invoices/pdf/queue/clear:
- *   post:
- *     summary: Clear PDF queue (emergency use)
- *     tags: [Invoices]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Queue cleared successfully
- */
-router.post('/pdf/queue/clear', authenticate, pdfController.clearPdfQueue);
-
-router.get('/templates', authenticate, pdfController.getInvoiceTemplates);
 
 module.exports = router;
