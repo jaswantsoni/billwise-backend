@@ -62,24 +62,21 @@ exports.createInvoice = async (req, res) => {
       sendEmail = false
     } = req.body;
 
-    const organisations = await prisma.organisation.findMany({
-      where: { userId: req.userId },
-      take: 1
-    });
-
-    if (!organisations.length) {
-      return res.status(400).json({ success: false, error: 'No organisation found' });
-    }
-
     // Use requested organisationId if provided and it belongs to this user, else fall back to first
     let organisation;
     if (requestedOrgId) {
-      organisation = organisations.find(o => o.id === requestedOrgId)
-        || await prisma.organisation.findFirst({ where: { id: requestedOrgId, userId: req.userId } });
+      organisation = await prisma.organisation.findFirst({ where: { id: requestedOrgId, userId: req.userId } });
       if (!organisation) {
         return res.status(403).json({ success: false, error: 'Organisation not found or access denied' });
       }
     } else {
+      const organisations = await prisma.organisation.findMany({
+        where: { userId: req.userId },
+        take: 1
+      });
+      if (!organisations.length) {
+        return res.status(400).json({ success: false, error: 'No organisation found' });
+      }
       organisation = organisations[0];
     }
     const organisationId = organisation.id;
@@ -493,16 +490,16 @@ exports.updateInvoice = async (req, res) => {
       deliveryChargesTaxRate, freightChargesTaxRate, otherChargesTaxRate,
     } = req.body;
 
-    const organisations = await prisma.organisation.findMany({ where: { userId: req.userId }, take: 1 });
-    if (!organisations.length) return res.status(404).json({ success: false, error: 'Invoice not found' });
-    const organisationId = organisations[0].id;
-    const organisation = organisations[0];
-
-    const existing = await prisma.invoice.findFirst({
-      where: { id, organisationId },
+    // Find invoice and verify ownership via org
+    const existing = await prisma.invoice.findUnique({
+      where: { id },
       include: { items: true }
     });
     if (!existing) return res.status(404).json({ success: false, error: 'Invoice not found' });
+
+    const organisation = await prisma.organisation.findFirst({ where: { id: existing.organisationId, userId: req.userId } });
+    if (!organisation) return res.status(403).json({ success: false, error: 'Access denied' });
+    const organisationId = organisation.id;
 
     // If items are being updated, recalculate totals
     let updateData = {
