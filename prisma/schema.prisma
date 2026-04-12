@@ -499,6 +499,26 @@ model CustomTemplate {
   @@index([organisationId])
 }
 
+model Payment {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  organisationId String   @db.ObjectId
+  customerId     String?  @db.ObjectId
+  supplierId     String?  @db.ObjectId
+  amount         Float
+  type           String   // RECEIVED | PAID
+  method         String?  // CASH | UPI | NEFT | CHEQUE | CARD
+  reference      String?
+  notes          String?
+  date           DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organisationId])
+  @@index([customerId])
+  @@index([supplierId])
+  @@index([date])
+}
+
 model GstCache {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   gstin       String   @unique

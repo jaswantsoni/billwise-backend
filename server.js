@@ -108,6 +108,8 @@ app.use('/api/pdf', pdfRoutes);
 app.use('/api/custom-templates', customTemplateRoutes);
 app.use('/api/feedback', require('./routes/feedback'));
 app.use('/api/data', require('./routes/dataExport'));
+app.use('/api/ledger', require('./routes/ledger'));
+app.use('/api/payments', require('./routes/payment'));
 
 app.get('/public/invoice/:id/:signature', pdfController.getInvoicePDFPublic);
 
