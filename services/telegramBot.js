@@ -41,7 +41,11 @@ const mainMenu = {
 const cancelKeyboard = { reply_markup: { keyboard: [[{ text: '❌ Cancel' }]], resize_keyboard: true } };
 
 async function getOrg(userId) {
-  return prisma.organisation.findFirst({ where: { userId } });
+  // Get the most recently updated org for this user
+  return prisma.organisation.findFirst({
+    where: { userId },
+    orderBy: { updatedAt: 'desc' }
+  });
 }
 
 async function sendMainMenu(bot, chatId, text) {
