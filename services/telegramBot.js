@@ -133,10 +133,16 @@ function initBot(token) {
     const data = query.data;
     await bot.answerCallbackQuery(query.id);
 
-    await requireAuth(query.message, async (user) => {
-      const session = getSession(chatId);
+    // Auth check uses query.from (the user who clicked), not query.message.from (the bot)
+    const user = await getUserByTelegramId(String(query.from.id));
+    if (!user) {
+      await bot.sendMessage(chatId, '🔒 Please link your Kampony account first.\n\nGo to Profile → Connections → Telegram in the web app.');
+      return;
+    }
 
-      if (data.startsWith('customer:')) {
+    const session = getSession(chatId);
+
+    if (data.startsWith('customer:')) {
         const customerId = data.replace('customer:', '');
         session.data.customerId = customerId;
         const customer = await prisma.customer.findUnique({ where: { id: customerId }, include: { addresses: true } });
@@ -208,7 +214,6 @@ function initBot(token) {
         await bot.sendMessage(chatId, '⏳ Generating PDF...');
         await sendInvoicePdf(chatId, invoiceId, user);
       }
-    });
   });
 
   return bot;
