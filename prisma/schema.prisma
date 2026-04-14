@@ -21,6 +21,11 @@ model User {
   gmailRefreshToken String?
   gmailTokenExpiry  DateTime?
 
+  // Telegram
+  telegramId        String?   @unique
+  telegramUsername  String?
+  telegramLinkedAt  DateTime?
+
   // Subscription
   planTier       String?   @default("free")
   planInterval   String?

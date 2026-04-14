@@ -110,6 +110,7 @@ app.use('/api/feedback', require('./routes/feedback'));
 app.use('/api/data', require('./routes/dataExport'));
 app.use('/api/ledger', require('./routes/ledger'));
 app.use('/api/payments', require('./routes/payment'));
+app.use('/api/telegram', require('./routes/telegram'));
 
 app.get('/public/invoice/:id/:signature', pdfController.getInvoicePDFPublic);
 
@@ -118,6 +119,13 @@ app.use(errorHandler);
 
 // Start cron jobs
 startExpiryCheck();
+
+// Start Telegram bot if token is configured
+if (process.env.TELEGRAM_BOT_TOKEN) {
+  const { initBot } = require('./services/telegramBot');
+  initBot(process.env.TELEGRAM_BOT_TOKEN);
+  console.log('Telegram bot started');
+}
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
