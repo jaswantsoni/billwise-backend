@@ -358,6 +358,7 @@ model InvoiceItem {
   productId    String   @db.ObjectId
   product      Product  @relation(fields: [productId], references: [id])
   description  String
+  subDescription String? @default("")
   hsnSac       String?
   quantity     Float
   creditedQty  Float    @default(0)
@@ -624,4 +625,44 @@ model MailLog {
 
   @@index([userId])
   @@index([status])
+}
+
+model Lead {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+
+  // Identity
+  email       String
+  name        String?
+  googleId    String?
+
+  // Business info captured from the tool form
+  businessName  String?
+  gstin         String?
+  phone         String?
+  city          String?
+  state         String?
+
+  // Lead source tracking
+  source        String?  // e.g. "gst-invoice-generator", "gst-calculator", "organic"
+  sourcePage    String?  // full slug e.g. "/gst-invoice-generator-free"
+  utmSource     String?
+  utmMedium     String?
+  utmCampaign   String?
+
+  // Status for CRM
+  status        String   @default("new")  // new | contacted | converted | unsubscribed
+  convertedAt   DateTime?
+  userId        String?  @db.ObjectId     // set when they become a full user
+  invoiceCount  Int      @default(0)      // how many free invoices generated
+
+  // Marketing consent
+  marketingConsent Boolean @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@index([source])
+  @@index([createdAt])
 }

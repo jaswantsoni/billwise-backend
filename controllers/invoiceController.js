@@ -201,6 +201,7 @@ exports.createInvoice = async (req, res) => {
       return {
         productId: item.productId,
         description: item.description,
+        subDescription: item.subDescription || '',
         hsnSac: item.hsnSac || product?.hsnCode || product?.sacCode || '',
         quantity: item.quantity,
         unit: item.unit || product?.unit || 'PCS',
@@ -573,6 +574,7 @@ exports.updateInvoice = async (req, res) => {
         return {
           productId: item.productId,
           description: item.description,
+          subDescription: item.subDescription || '',
           hsnSac: item.hsnSac || product?.hsnCode || product?.sacCode || '',
           quantity: item.quantity,
           unit: item.unit || product?.unit || 'PCS',
