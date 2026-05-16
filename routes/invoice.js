@@ -131,6 +131,7 @@ router.get('/pdf/queue', authenticate, pdfController.pdfQueueStats);
 router.post('/pdf/queue/clear', authenticate, pdfController.clearPdfQueue);
 
 router.get('/:id/pdf', authenticate, pdfController.getInvoicePDF);
+router.get('/:id/pdf-public', pdfController.getInvoicePDFPublic); // Public PDF - no auth required
 router.get('/:id', authenticate, invoiceController.getInvoice);
 router.put('/:id', authenticate, invoiceController.updateInvoice);
 router.patch('/:id/cancel', authenticate, invoiceController.cancelInvoice);

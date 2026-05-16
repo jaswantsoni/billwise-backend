@@ -189,21 +189,16 @@ exports.getInvoicePDF = async (req, res) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════
-// GET /api/invoices/:id/pdf/public/:signature?template=modern
+// GET /api/invoices/:id/pdf-public (NO SIGNATURE REQUIRED)
+// Simple public PDF endpoint - no authentication or signature needed
 // ═══════════════════════════════════════════════════════════════════
-const generateSignature = (invoiceId) => {
-  return crypto.createHash('sha256').update(invoiceId + process.env.JWT_SECRET).digest('hex').substring(0, 16);
-};
-
 exports.getInvoicePDFPublic = async (req, res) => {
   const startTime = Date.now();
   const requestId = Math.random().toString(36).substr(2, 9);
 
   try {
-    const { id, signature } = req.params;
+    const { id } = req.params;
     const templateId = req.query.template || 'classic';
-
-    if (signature !== generateSignature(id)) return res.status(403).json({ error: 'Invalid signature' });
 
     console.log(`[Public PDF] 📄 Request ${requestId} - Generating PDF (template: ${templateId}) for invoice ${id}`);
 

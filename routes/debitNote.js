@@ -119,7 +119,7 @@ router.get('/', authenticate, debitNoteController.getDebitNotes);
  */
 router.get('/:id', authenticate, debitNoteController.getDebitNote);
 router.get('/:id/pdf', authenticate, debitNoteController.getDebitNotePDF);
-router.get('/:id/public-pdf', debitNoteController.getDebitNotePDFPublic);
+router.get('/:id/pdf-public', debitNoteController.getDebitNotePDFPublic); // Public PDF - no auth required
 
 /**
  * @swagger

@@ -119,7 +119,7 @@ router.get('/', authenticate, creditNoteController.getCreditNotes);
  */
 router.get('/:id', authenticate, creditNoteController.getCreditNote);
 router.get('/:id/pdf', authenticate, creditNoteController.getCreditNotePDF);
-router.get('/:id/public-pdf', creditNoteController.getCreditNotePDFPublic);
+router.get('/:id/pdf-public', creditNoteController.getCreditNotePDFPublic); // Public PDF - no auth required
 
 /**
  * @swagger
