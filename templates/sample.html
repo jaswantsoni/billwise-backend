@@ -1,0 +1,194 @@
+<!-- name: Sample -->
+<!-- description: A complete sample showing all available tokens -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; font-size: 11px; color: #222; background: #fff; }
+    @media print {
+      body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+
+    .page { max-width: 800px; margin: 0 auto; padding: 30px; }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 3px solid #2563eb;
+      padding-bottom: 16px;
+      margin-bottom: 16px;
+    }
+    .org-name { font-size: 20px; font-weight: bold; color: #1e3a8a; margin-bottom: 4px; }
+    .org-detail { font-size: 10px; color: #555; margin: 1px 0; }
+    .inv-title { font-size: 22px; font-weight: 800; color: #2563eb; text-align: right; }
+    .inv-badge { display: inline-block; background: #2563eb; color: #fff; font-size: 9px; font-weight: 700; padding: 2px 10px; border-radius: 12px; margin-top: 4px; letter-spacing: 1px; text-transform: uppercase; }
+    .copy-type { font-size: 9px; color: #888; text-align: right; margin-top: 3px; }
+
+    /* ── Meta bar ── */
+    .meta-bar {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      background: #f0f6ff;
+      border-left: 4px solid #2563eb;
+      padding: 8px 14px;
+      margin-bottom: 16px;
+      font-size: 10px;
+    }
+    .meta-bar strong { color: #1e3a8a; }
+
+    /* ── Address grid ── */
+    .addr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .addr-box { border: 1px solid #dbeafe; border-radius: 6px; padding: 10px 12px; background: #f8fbff; }
+    .addr-label { font-size: 9px; font-weight: 700; color: #2563eb; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+    .addr-box p { font-size: 10px; margin: 1px 0; }
+
+    /* ── Items table ── */
+    .items-wrap { margin-bottom: 16px; }
+    .items-wrap table { width: 100%; border-collapse: collapse; }
+    .items-wrap th {
+      background: #1e3a8a;
+      color: #fff;
+      padding: 7px 5px;
+      font-size: 9px;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .items-wrap td {
+      padding: 6px 5px;
+      font-size: 10px;
+      text-align: center;
+      border-bottom: 1px solid #e5edff;
+    }
+    .items-wrap tr:nth-child(even) td { background: #f5f8ff; }
+
+    /* ── Totals ── */
+    .bottom-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+    .amount-words { flex: 1; font-size: 10px; font-style: italic; color: #555; padding-right: 20px; padding-top: 4px; }
+    .totals-wrap table { width: 220px; border-collapse: collapse; }
+    .totals-wrap td { padding: 4px 8px; font-size: 10px; }
+    .totals-wrap tr:last-child td { font-weight: bold; font-size: 13px; background: #1e3a8a; color: #fff; }
+
+    /* ── Bank ── */
+    .bank-box {
+      background: #f0f6ff;
+      border-radius: 6px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      font-size: 10px;
+    }
+    .bank-box strong { color: #1e3a8a; display: block; margin-bottom: 5px; font-size: 11px; }
+    .bank-box p { margin: 1px 0; }
+
+    /* ── Notes ── */
+    .notes-box { font-size: 10px; color: #444; margin-bottom: 14px; }
+    .notes-box p { margin: 3px 0; }
+
+    /* ── Signature ── */
+    .signature { text-align: right; margin-top: 30px; font-size: 10px; }
+    .sig-line { border-top: 1px solid #1e3a8a; display: inline-block; padding-top: 4px; margin-top: 40px; color: #1e3a8a; font-weight: 600; min-width: 160px; }
+
+    /* ── Footer ── */
+    .footer { text-align: center; font-size: 8px; color: #aaa; margin-top: 20px; border-top: 1px solid #e5e7eb; padding-top: 8px; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ══ HEADER ══════════════════════════════════════════════════ -->
+  <div class="header">
+    <div>
+      {{organisation.logo}}
+      <div class="org-name">{{organisation.name}}</div>
+      <div class="org-detail">{{organisation.address}}{{organisation.city}}, {{organisation.state}} - {{organisation.pincode}}</div>
+      <div class="org-detail">GSTIN: {{organisation.gstin}} &nbsp;|&nbsp; PAN: {{organisation.pan}}</div>
+      <div class="org-detail">Ph: {{organisation.phone}} &nbsp;|&nbsp; {{organisation.email}}</div>
+    </div>
+    <div>
+      <div class="inv-title">{{invoice.invoiceType}}</div>
+      <div class="inv-badge">{{invoice.copyType}}</div>
+    </div>
+  </div>
+
+  <!-- ══ META BAR ════════════════════════════════════════════════ -->
+  <div class="meta-bar">
+    <span><strong>Invoice No:</strong> {{invoice.invoiceNumber}}</span>
+    <span><strong>Date:</strong> {{invoice.invoiceDate}}</span>
+    <span><strong>Due Date:</strong> {{invoice.dueDate}}</span>
+    <span><strong>Place of Supply:</strong> {{invoice.placeOfSupply}}</span>
+    <span><strong>Reverse Charge:</strong> {{invoice.reverseCharge}}</span>
+    <span><strong>Payment Terms:</strong> {{invoice.paymentTerms}}</span>
+  </div>
+
+  <!-- ══ ADDRESSES ═══════════════════════════════════════════════ -->
+  <div class="addr-grid">
+    <div class="addr-box">
+      <div class="addr-label">Bill To</div>
+      {{billing.block}}
+    </div>
+    <div class="addr-box">
+      <div class="addr-label">Ship To</div>
+      {{shipping.block}}
+    </div>
+  </div>
+
+  <!-- ══ ITEMS TABLE ═════════════════════════════════════════════ -->
+  <!--
+    {{items}} renders the full items table automatically.
+    It handles CGST/SGST vs IGST based on interstate detection.
+    You can also use individual tokens inside a custom table — see docs.
+  -->
+  <div class="items-wrap">
+    {{items}}
+  </div>
+
+  <!-- ══ TOTALS + AMOUNT IN WORDS ════════════════════════════════ -->
+  <div class="bottom-row">
+    <div class="amount-words">
+      <strong>Amount in Words:</strong><br>
+      {{invoice.amountInWords}}
+    </div>
+    <div class="totals-wrap">
+      {{totals}}
+    </div>
+  </div>
+
+  <!-- ══ BANK DETAILS + QR ═══════════════════════════════════════ -->
+  <div class="bank-box">
+    <strong>Bank Details</strong>
+    {{bank}}
+  </div>
+
+  <!-- ══ NOTES / TERMS / DECLARATION ════════════════════════════ -->
+  <div class="notes-box">
+    {{notes}}
+  </div>
+
+  <!-- ══ TRANSPORT DETAILS (shown only if filled) ════════════════ -->
+  <!--
+    These tokens return empty string if not set, so the row just disappears.
+    Wrap in a conditional div if you want to hide the whole section.
+  -->
+  <div style="font-size:10px;color:#555;margin-bottom:10px;">
+    {{invoice.vehicleNumber}}{{invoice.transportName}}{{invoice.lrNumber}}{{invoice.ewayBillNumber}}
+  </div>
+
+  <!-- ══ SIGNATURE ═══════════════════════════════════════════════ -->
+  <div class="signature">
+    <p>For <strong>{{organisation.name}}</strong></p>
+    <div class="sig-line">Authorized Signatory</div>
+  </div>
+
+  <!-- ══ FOOTER ══════════════════════════════════════════════════ -->
+  <div class="footer">
+    Computer generated invoice — no physical signature required &nbsp;|&nbsp; © {{year}} {{organisation.name}}
+  </div>
+
+</div>
+</body>
+</html>

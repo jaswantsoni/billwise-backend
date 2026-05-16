@@ -23,11 +23,17 @@ const baseCSS = `
 const buildItemRows = (items, isInterstate, hasDiscount) => {
   return items.map((item, idx) => {
     const productName = (item.product && item.product.name) || item.description || '';
-    const subDesc = (item.product && item.product.name && item.description && item.description !== item.product.name) ? item.description : '';
+    const subDesc = item.subDescription ||
+      ((item.product && item.product.name && item.description && item.description !== item.product.name)
+        ? item.description : '');
     const hsnSac = item.hsnSac || (item.product && (item.product.hsnCode || item.product.sacCode)) || '-';
     return { idx: idx + 1, productName, subDesc, hsnSac, item };
   });
 };
+
+// Renders product name + optional details in italic lighter font
+const productCell = (row) =>
+  `${row.productName}${row.subDesc ? `<br><span style="font-size:8.5px;font-style:italic;color:#777;font-weight:400;">${row.subDesc}</span>` : ''}`;
 
 // ─── Helper: Common sections ──────────────────────────────────────
 const orgHeader = (organisation, style = '') => `
@@ -164,7 +170,7 @@ const classicTemplate = (invoice, organisation, billingAddress, shippingAddress,
         ${invoice.items.map((item, idx) => {
           const row = buildItemRows([item], h.isInterstate, hasDiscount)[0];
           return `<tr>
-            <td>${row.idx}</td><td style="text-align:left;">${row.productName}${row.subDesc ? '<br><small>' + row.subDesc + '</small>' : ''}</td>
+            <td>${row.idx}</td><td style="text-align:left;">${productCell(row)}</td>
             <td>${row.hsnSac}</td><td>${item.quantity}</td><td>${item.unit}</td><td>${formatCurrency(item.rate)}</td>
             ${hasDiscount ? `<td>${formatCurrency(item.discount || 0)}</td>` : ''}
             <td>${item.taxRate}%</td>
@@ -254,7 +260,7 @@ const modernTemplate = (invoice, organisation, billingAddress, shippingAddress, 
           ${invoice.items.map((item, idx) => {
             const row = buildItemRows([item], h.isInterstate, hasDiscount)[0];
             return `<tr>
-              <td>${idx+1}</td><td style="text-align:left;">${row.productName}</td><td>${row.hsnSac}</td>
+              <td>${idx+1}</td><td style="text-align:left;">${productCell(row)}</td><td>${row.hsnSac}</td>
               <td>${item.quantity}</td><td>${item.unit}</td><td>${formatCurrency(item.rate)}</td>
               ${hasDiscount ? `<td>${formatCurrency(item.discount||0)}</td>` : ''}<td>${item.taxRate}%</td>
               ${!h.isInterstate ? `<td>${formatCurrency(item.cgst||0)}</td><td>${formatCurrency(item.sgst||0)}</td>` : `<td>${formatCurrency(item.igst||0)}</td>`}
@@ -335,7 +341,7 @@ const minimalTemplate = (invoice, organisation, billingAddress, shippingAddress,
         ${invoice.items.map((item, idx) => {
           const row = buildItemRows([item], h.isInterstate, hasDiscount)[0];
           return `<tr>
-            <td>${idx+1}</td><td>${row.productName}</td><td>${row.hsnSac}</td>
+            <td>${idx+1}</td><td>${productCell(row)}</td><td>${row.hsnSac}</td>
             <td style="text-align:center;">${item.quantity} ${item.unit}</td><td>${formatCurrency(item.rate)}</td>
             ${hasDiscount ? `<td>${formatCurrency(item.discount||0)}</td>` : ''}<td>${item.taxRate}%</td>
             ${!h.isInterstate ? `<td>${formatCurrency(item.cgst||0)}</td><td>${formatCurrency(item.sgst||0)}</td>` : `<td>${formatCurrency(item.igst||0)}</td>`}
@@ -418,7 +424,7 @@ const professionalTemplate = (invoice, organisation, billingAddress, shippingAdd
           ${invoice.items.map((item, idx) => {
             const row = buildItemRows([item], h.isInterstate, hasDiscount)[0];
             return `<tr>
-              <td>${idx+1}</td><td style="text-align:left;">${row.productName}</td><td>${row.hsnSac}</td>
+              <td>${idx+1}</td><td style="text-align:left;">${productCell(row)}</td><td>${row.hsnSac}</td>
               <td>${item.quantity}</td><td>${item.unit}</td><td>${formatCurrency(item.rate)}</td>
               ${hasDiscount ? `<td>${formatCurrency(item.discount||0)}</td>` : ''}<td>${item.taxRate}%</td>
               ${!h.isInterstate ? `<td>${formatCurrency(item.cgst||0)}</td><td>${formatCurrency(item.sgst||0)}</td>` : `<td>${formatCurrency(item.igst||0)}</td>`}
@@ -495,7 +501,7 @@ const compactTemplate = (invoice, organisation, billingAddress, shippingAddress,
         ${invoice.items.map((item, idx) => {
           const row = buildItemRows([item], h.isInterstate, hasDiscount)[0];
           return `<tr>
-            <td>${idx+1}</td><td style="text-align:left;">${row.productName}</td><td>${row.hsnSac}</td>
+            <td>${idx+1}</td><td style="text-align:left;">${productCell(row)}</td><td>${row.hsnSac}</td>
             <td>${item.quantity}</td><td>${item.unit}</td><td>${formatCurrency(item.rate)}</td>
             ${hasDiscount ? `<td>${formatCurrency(item.discount||0)}</td>` : ''}<td>${item.taxRate}%</td>
             ${!h.isInterstate ? `<td>${formatCurrency(item.cgst||0)}</td><td>${formatCurrency(item.sgst||0)}</td>` : `<td>${formatCurrency(item.igst||0)}</td>`}
@@ -572,7 +578,7 @@ const elegantTemplate = (invoice, organisation, billingAddress, shippingAddress,
         ${invoice.items.map((item, idx) => {
           const row = buildItemRows([item], h.isInterstate, hasDiscount)[0];
           return `<tr>
-            <td>${idx+1}</td><td style="text-align:left;">${row.productName}</td><td>${row.hsnSac}</td>
+            <td>${idx+1}</td><td style="text-align:left;">${productCell(row)}</td><td>${row.hsnSac}</td>
             <td>${item.quantity}</td><td>${item.unit}</td><td>${formatCurrency(item.rate)}</td>
             ${hasDiscount ? `<td>${formatCurrency(item.discount||0)}</td>` : ''}<td>${item.taxRate}%</td>
             ${!h.isInterstate ? `<td>${formatCurrency(item.cgst||0)}</td><td>${formatCurrency(item.sgst||0)}</td>` : `<td>${formatCurrency(item.igst||0)}</td>`}
@@ -594,6 +600,120 @@ const elegantTemplate = (invoice, organisation, billingAddress, shippingAddress,
   </div></body></html>`;
 };
 
+const boldTemplate = (invoice, organisation, billingAddress, shippingAddress, h) => {
+  const hasDiscount = invoice.items.some(i => i.discount > 0);
+  const total = invoice.total || invoice.totalAmount || 0;
+  return `<!DOCTYPE html><html><head><style>
+    ${baseCSS}
+    body { font-family: Arial, sans-serif; color: #1a1a2e; }
+    .invoice { max-width: 800px; margin: 0 auto; padding: 0; }
+    .header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%); color: #fff; padding: 24px 30px; display: flex; justify-content: space-between; align-items: flex-start; }
+    .header h2 { font-size: 20px; margin: 0 0 4px; letter-spacing: 0.5px; }
+    .header p { font-size: 9px; opacity: 0.8; margin: 1px 0; }
+    .inv-badge { background: #e94560; color: #fff; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px; letter-spacing: 1px; text-transform: uppercase; }
+    .copy-type { font-size: 8px; opacity: 0.7; margin-top: 4px; text-align: right; }
+    .meta-bar { background: #f0f4ff; border-left: 4px solid #0f3460; padding: 10px 30px; display: flex; gap: 30px; flex-wrap: wrap; }
+    .meta-bar span { font-size: 10px; color: #555; }
+    .meta-bar strong { color: #0f3460; }
+    .body { padding: 20px 30px; }
+    .addr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    .addr-box { border: 1px solid #e0e7ff; border-radius: 6px; padding: 12px; background: #fafbff; }
+    .addr-box .label { font-size: 9px; font-weight: 700; color: #0f3460; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .addr-box p { font-size: 10px; margin: 1px 0; color: #333; }
+    .items { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+    .items th { background: #0f3460; color: #fff; padding: 8px 6px; font-size: 9px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+    .items td { padding: 7px 6px; font-size: 10px; text-align: center; border-bottom: 1px solid #e8ecf8; }
+    .items tr:nth-child(even) td { background: #f5f7ff; }
+    .totals-wrap { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 10px; }
+    .amount-words { flex: 1; font-size: 10px; font-style: italic; color: #555; padding-right: 20px; padding-top: 4px; }
+    .totals td { padding: 4px 10px; font-size: 10px; }
+    .grand { background: #0f3460; color: #fff; }
+    .bank-section { background: #f0f4ff; border-radius: 6px; padding: 12px 16px; margin-top: 15px; display: flex; justify-content: space-between; align-items: flex-start; }
+    .bank-section .title { font-size: 10px; font-weight: 700; color: #0f3460; margin-bottom: 5px; }
+    .bank-section p { font-size: 9px; margin: 1px 0; color: #444; }
+    .sig { text-align: right; margin-top: 30px; font-size: 10px; padding: 0 30px 20px; }
+    .sig-line { border-top: 2px solid #0f3460; display: inline-block; padding-top: 4px; margin-top: 35px; color: #0f3460; font-weight: 600; }
+    .footer { text-align: center; font-size: 8px; color: #aaa; padding: 8px 30px; border-top: 1px solid #e8ecf8; }
+  </style></head><body><div class="invoice">
+    <div class="header">
+      <div>
+        ${organisation.logo ? `<img src="${organisation.logo}" alt="" style="max-height:45px;margin-bottom:6px;display:block;">` : ''}
+        <h2>${organisation.name}</h2>
+        <p>${organisation.address}${organisation.city ? ', ' + organisation.city : ''}${organisation.state ? ', ' + organisation.state : ''}${organisation.pincode ? ' - ' + organisation.pincode : ''}</p>
+        ${organisation.gstin ? `<p>GSTIN: ${organisation.gstin}</p>` : ''}
+        <p>${organisation.phone} | ${organisation.email}</p>
+      </div>
+      <div style="text-align:right;">
+        <div class="inv-badge">${invoice.invoiceType?.replace('_', ' ') || 'Tax Invoice'}</div>
+        <div class="copy-type">${invoice.invoiceCopyType || ''}</div>
+      </div>
+    </div>
+    <div class="meta-bar">
+      <span><strong>Invoice No:</strong> ${invoice.invoiceNumber}</span>
+      <span><strong>Date:</strong> ${new Date(invoice.invoiceDate).toLocaleDateString('en-IN')}</span>
+      <span><strong>Due:</strong> ${invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('en-IN') : '-'}</span>
+      <span><strong>Terms:</strong> ${invoice.paymentTerms || 'NET_30'}</span>
+      ${invoice.placeOfSupply ? `<span><strong>Place of Supply:</strong> ${invoice.placeOfSupply}</span>` : ''}
+    </div>
+    <div class="body">
+      <div class="addr-grid">
+        <div class="addr-box">
+          <div class="label">Bill To</div>
+          <p><strong>${invoice.customer.name}</strong></p>
+          ${billingAddress ? `<p>${billingAddress.line1 || billingAddress.address || ''}</p>${billingAddress.city ? `<p>${billingAddress.city}, ${billingAddress.state} - ${billingAddress.pincode}</p>` : ''}` : ''}
+          ${invoice.customer.gstin ? `<p>GSTIN: ${invoice.customer.gstin}</p>` : '<p>Unregistered</p>'}
+          ${invoice.customer.phone ? `<p>Ph: ${invoice.customer.phone}</p>` : ''}
+        </div>
+        <div class="addr-box">
+          <div class="label">Ship To</div>
+          ${shippingAddress ? `<p><strong>${invoice.customer.name}</strong></p><p>${shippingAddress.line1 || shippingAddress.address || ''}</p>${shippingAddress.city ? `<p>${shippingAddress.city}, ${shippingAddress.state} - ${shippingAddress.pincode}</p>` : ''}` : '<p>Same as billing address</p>'}
+        </div>
+      </div>
+      <table class="items">
+        <thead><tr>
+          <th>#</th><th style="text-align:left;">Description</th><th>HSN</th><th>Qty</th><th>Unit</th><th>Rate</th>
+          ${hasDiscount ? '<th>Disc</th>' : ''}<th>Tax%</th>
+          ${!h.isInterstate ? '<th>CGST</th><th>SGST</th>' : '<th>IGST</th>'}<th>Amount</th>
+        </tr></thead>
+        <tbody>
+          ${invoice.items.map((item, idx) => {
+            const row = buildItemRows([item], h.isInterstate, hasDiscount)[0];
+            return `<tr>
+              <td>${idx+1}</td><td style="text-align:left;">${productCell(row)}</td><td>${row.hsnSac}</td>
+              <td>${item.quantity}</td><td>${item.unit}</td><td>${formatCurrency(item.rate)}</td>
+              ${hasDiscount ? `<td>${formatCurrency(item.discount||0)}</td>` : ''}<td>${item.taxRate}%</td>
+              ${!h.isInterstate ? `<td>${formatCurrency(item.cgst||0)}</td><td>${formatCurrency(item.sgst||0)}</td>` : `<td>${formatCurrency(item.igst||0)}</td>`}
+              <td><strong>${formatCurrency(item.amount)}</strong></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      <div class="totals-wrap">
+        <div class="amount-words">${h.amountToWords(total)}</div>
+        <table style="width:240px;" class="totals">${totalsBlock(invoice, h.isInterstate)}</table>
+      </div>
+      ${organisation.bankName ? `
+      <div class="bank-section">
+        <div>
+          <div class="title">Bank Details</div>
+          <p><strong>Bank:</strong> ${organisation.bankName}${organisation.branch ? ', ' + organisation.branch : ''}</p>
+          ${organisation.accountHolderName ? `<p><strong>A/c Holder:</strong> ${organisation.accountHolderName}</p>` : ''}
+          ${organisation.accountNumber ? `<p><strong>A/c No:</strong> ${organisation.accountNumber}</p>` : ''}
+          ${organisation.ifsc ? `<p><strong>IFSC:</strong> ${organisation.ifsc}</p>` : ''}
+          ${organisation.upi ? `<p><strong>UPI:</strong> ${organisation.upi}</p>` : ''}
+        </div>
+        ${h.qrCodeDataUrl ? `<div style="text-align:center;"><p style="font-size:8px;font-weight:700;color:#0f3460;margin-bottom:4px;">Scan to Pay</p><img src="${h.qrCodeDataUrl}" style="width:80px;height:80px;"></div>` : ''}
+      </div>` : ''}
+      <div style="font-size:10px;margin-top:10px;">${notesSection(invoice)}</div>
+    </div>
+    <div class="sig">
+      <p>For <strong>${organisation.name}</strong></p>
+      <div class="sig-line">Authorized Signatory</div>
+    </div>
+    <div class="footer">Computer generated invoice — no physical signature required</div>
+  </div></body></html>`;
+};
+
 // ═══════════════════════════════════════════════════════════════════
 // Template Registry
 // ═══════════════════════════════════════════════════════════════════
@@ -604,14 +724,25 @@ const TEMPLATES = {
   professional: { name: 'Professional', description: 'Dark header with slate tones', render: professionalTemplate },
   compact: { name: 'Compact', description: 'Dense space-efficient layout', render: compactTemplate },
   elegant: { name: 'Elegant', description: 'Green accent with classic serif styling', render: elegantTemplate },
+  bold: { name: 'Bold', description: 'Dark navy header with red accent badge', render: boldTemplate },
 };
+
+// Merge in HTML file templates from /templates folder
+const { loadHtmlTemplates } = require('./htmlTemplateRenderer');
+const HTML_TEMPLATES = loadHtmlTemplates();
+Object.assign(TEMPLATES, HTML_TEMPLATES);
 
 const getTemplate = (templateId) => {
   return TEMPLATES[templateId] || TEMPLATES.classic;
 };
 
 const listTemplates = () => {
-  return Object.entries(TEMPLATES).map(([id, t]) => ({ id, name: t.name, description: t.description }));
+  return Object.entries(TEMPLATES).map(([id, t]) => ({
+    id,
+    name: t.name,
+    description: t.description,
+    isHtmlFile: t.isHtmlFile || false,
+  }));
 };
 
 module.exports = { TEMPLATES, getTemplate, listTemplates, formatCurrency };

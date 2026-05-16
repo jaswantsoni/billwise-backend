@@ -33,6 +33,7 @@ const stockRoutes = require('./routes/stock');
 const reportRoutes = require('./routes/report');
 const pdfRoutes = require('./routes/pdf');
 const customTemplateRoutes = require('./routes/customTemplate');
+const publicInvoiceRoutes = require('./routes/publicInvoice');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -43,7 +44,7 @@ app.use(cors({
     const allowedOrigins = [
       'http://localhost:8080',
       'http://localhost:5173',
-      'http://localhost:3000',
+      'http://localhost:3001',
       'https://www.kampony.com',
       'https://kampony.com',
       'https://payments.kampony.com',
@@ -107,6 +108,9 @@ app.use('/api/stock', stockRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/pdf', pdfRoutes);
 app.use('/api/custom-templates', customTemplateRoutes);
+app.use('/api/public/invoice', publicInvoiceRoutes);
+app.use('/api/leads', require('./routes/leads'));
+app.use('/api/quick-invoice', require('./routes/quickInvoice'));
 app.use('/api/feedback', require('./routes/feedback'));
 app.use('/api/data', require('./routes/dataExport'));
 app.use('/api/ledger', require('./routes/ledger'));
