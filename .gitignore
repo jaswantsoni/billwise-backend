@@ -1,3 +1,11 @@
 node_modules
 .env
 .vercel
+
+.serverless/
+logs/
+*.zip
+*.bak
+*.key
+apprunner-staging.json
+scripts/
