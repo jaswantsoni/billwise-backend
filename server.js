@@ -90,6 +90,21 @@ app.get('/api-docs.json', (req, res) => {
   res.send(swaggerSpec);
 });
 
+// SaaS API Docs — separate Swagger UI
+app.use('/saas-docs', swaggerUi.serve, swaggerUi.setup(swaggerSaasSpec, {
+  customSiteTitle: 'Kampony SaaS API',
+  customCss: `
+    .swagger-ui .topbar { background: #4f46e5; }
+    .swagger-ui .topbar .download-url-wrapper { display: none; }
+    .swagger-ui .info .title { color: #4f46e5; }
+  `,
+}));
+app.get('/saas-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSaasSpec);
+});
+});
+
 app.use('/api/gst', gstRoutes);
 app.use('/api/eway', ewayRoutes);
 app.use('/auth', authRoutes);
