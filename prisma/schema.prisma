@@ -676,9 +676,69 @@ model ApiKey {
   userId         String       @db.ObjectId
   organisationId String       @db.ObjectId
   active         Boolean      @default(true)
+  // e.g. ["products:write","customers:write","orders:write","invoices:read","inventory:write","webhooks:write"]
+  // empty array = full access (backward compat)
+  permissions    String[]     @default([])
   lastUsedAt     DateTime?
   createdAt      DateTime     @default(now())
 
   user         User         @relation(fields: [userId], references: [id])
   organisation Organisation @relation(fields: [organisationId], references: [id])
+}
+
+// ─── SaaS Order Model ─────────────────────────────────────────────────────────
+model SaasOrder {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderNumber    String   @unique
+  organisationId String   @db.ObjectId
+  customerId     String   @db.ObjectId
+  status         String   @default("PENDING") // PENDING | CONFIRMED | PROCESSING | SHIPPED | DELIVERED | CANCELLED | RETURNED
+  paymentStatus  String   @default("UNPAID")  // UNPAID | PAID | PARTIAL | REFUNDED
+  items          Json     // array of { productId, name, sku, quantity, price, taxRate, taxInclusive }
+  subtotal       Float
+  taxAmount      Float
+  total          Float
+  billingAddressId  String? @db.ObjectId
+  shippingAddressId String? @db.ObjectId
+  invoiceId      String?  @db.ObjectId  // set once invoice is generated
+  notes          String?
+  source         String?  // "shopify", "website", "manual" etc
+  externalOrderId String? // order ID from external system
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organisationId])
+  @@index([customerId])
+  @@index([status])
+}
+
+// ─── Webhook Config ───────────────────────────────────────────────────────────
+model WebhookConfig {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  organisationId String   @db.ObjectId
+  url            String
+  secret         String   // HMAC signing secret
+  events         String[] // ["invoice.created", "order.status_changed", etc]
+  active         Boolean  @default(true)
+  failureCount   Int      @default(0)
+  lastCalledAt   DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organisationId])
+}
+
+// ─── Webhook Delivery Log ─────────────────────────────────────────────────────
+model WebhookDelivery {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  webhookConfigId String   @db.ObjectId
+  event           String
+  payload         Json
+  statusCode      Int?
+  responseBody    String?
+  success         Boolean  @default(false)
+  attempts        Int      @default(1)
+  createdAt       DateTime @default(now())
+
+  @@index([webhookConfigId])
 }

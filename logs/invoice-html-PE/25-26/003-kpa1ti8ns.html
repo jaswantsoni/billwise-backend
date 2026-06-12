@@ -1,0 +1,136 @@
+<!DOCTYPE html><html><head><style>
+    
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #333; }
+  @media print {
+    body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .invoice { margin: 0; padding: 10mm; }
+  }
+  table { width: 100%; border-collapse: collapse; }
+
+    .invoice { max-width: 800px; margin: 0 auto; padding: 25px; font-family: 'Helvetica Neue', Arial, sans-serif; }
+    .header-bar { background: linear-gradient(135deg, #1a56db, #2563eb); color: #fff; padding: 20px 25px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; }
+    .header-bar h2 { margin: 0; font-size: 20px; }
+    .header-bar p { margin: 2px 0; font-size: 11px; opacity: 0.9; }
+    .body-wrap { border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; padding: 20px; }
+    .badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 20px; font-size: 10px; }
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #f8fafc; padding: 12px; border-radius: 6px; margin: 15px 0; }
+    .meta-grid p { font-size: 11px; margin: 2px 0; }
+    .addr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 15px 0; }
+    .addr-grid p { font-size: 11px; margin: 1px 0; }
+    .addr-card { background: #f8fafc; padding: 12px; border-radius: 6px; border-left: 3px solid #2563eb; }
+    .items { margin: 15px 0; border-radius: 6px; overflow: hidden; }
+    .items th { background: #f1f5f9; color: #334155; padding: 8px 6px; font-size: 10px; text-align: center; font-weight: 600; }
+    .items td { padding: 6px; font-size: 10px; text-align: center; border-bottom: 1px solid #f1f5f9; }
+    .totals-wrap { display: flex; justify-content: space-between; margin-top: 15px; }
+    .totals td { padding: 4px 10px; font-size: 12px; }
+    .footer { text-align: center; font-size: 9px; color: #94a3b8; margin-top: 20px; }
+  </style></head><body><div class="invoice">
+    <div class="header-bar">
+      <div>
+        
+        <h2>PLUTO ELECTRICA</h2>
+        <p>NANGLA ENCLAVE PART - 1, SOHNA ROAD, FARIDABAD, Faridabad, Haryana, 121004</p>
+        <p>GSTIN: 06CJPPD2198L1ZQ</p>
+        <p>+918527716732 | jaswantsoni1812@gmail.com</p>
+      </div>
+      <div style="text-align:right;">
+        <h3 style="font-size:22px;margin:0;">TAX INVOICE</h3>
+        <span class="badge">ORIGINAL FOR BUYER</span>
+      </div>
+    </div>
+    <div class="body-wrap">
+      <div class="meta-grid">
+        <p><strong>Invoice No:</strong> PE/25-26/003</p>
+        <p><strong>Date:</strong> 19/3/2026</p>
+        <p><strong>Due Date:</strong> 8/4/2026</p>
+        <p><strong>Place of Supply:</strong> Haryana</p>
+        <p><strong>Reverse Charge:</strong> No</p>
+        <p><strong>Payment Terms:</strong> NET_30</p>
+        
+        
+      </div>
+      <div class="addr-grid">
+        <div class="addr-card">
+    <div>
+      <strong>Bill To</strong>
+      <p style="font-weight:600;">Metro Infra Projects</p>
+      <p>Tower B, Cyber City</p>
+      
+      <p>Gurugram, Haryana - 122002</p>
+      <p>GSTIN: 06AABCM9012C1Z1</p>
+      <p>State: Haryana (06)</p>
+      <p>Phone: 9988776655</p>
+    </div>
+  </div>
+        <div class="addr-card">
+    <div>
+      <strong>Ship To</strong>
+      <p style="font-weight:600;">Metro Infra Projects</p>
+      <p>Tower B, Cyber City</p>
+      
+      <p>Gurugram, Haryana - 122002</p>
+      <p>GSTIN: 06AABCM9012C1Z1</p>
+      <p>State: Haryana (06)</p>
+      <p>Phone: 9988776655</p>
+    </div>
+  </div>
+      </div>
+      <table class="items">
+        <thead><tr>
+          <th>#</th><th>Item</th><th>HSN</th><th>Qty</th><th>Unit</th><th>Rate</th>
+          <th>Tax</th>
+          <th>CGST</th><th>SGST</th><th>Amount</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+              <td>1</td><td style="text-align:left;">Wiring Installation</td><td>995461</td>
+              <td>5</td><td>NOS</td><td>₹5000.00</td>
+              <td>18%</td>
+              <td>₹2250.00</td><td>₹2250.00</td>
+              <td>₹25000.00</td>
+            </tr><tr>
+              <td>2</td><td style="text-align:left;">Distribution Board 8-way</td><td>8537</td>
+              <td>5</td><td>PCS</td><td>₹1800.00</td>
+              <td>18%</td>
+              <td>₹810.00</td><td>₹810.00</td>
+              <td>₹9000.00</td>
+            </tr><tr>
+              <td>3</td><td style="text-align:left;">PVC Wire 1.5mm 90m</td><td>8544</td>
+              <td>8</td><td>ROLL</td><td>₹1250.00</td>
+              <td>18%</td>
+              <td>₹900.00</td><td>₹900.00</td>
+              <td>₹10000.00</td>
+            </tr><tr>
+              <td>4</td><td style="text-align:left;">MCB 32A Single Pole</td><td>8536</td>
+              <td>18</td><td>PCS</td><td>₹333.33</td>
+              <td>18%</td>
+              <td>₹540.00</td><td>₹540.00</td>
+              <td>₹6000.00</td>
+            </tr>
+        </tbody>
+      </table>
+      <div class="totals-wrap">
+        <div style="font-size:11px;"><p><strong>In Words:</strong> Fifty-nine Thousand Rupees Only</p></div>
+        <table style="width:250px;" class="totals"><tr><td>Subtotal</td><td style="text-align:right;">₹50000.00</td></tr><tr><td>CGST</td><td style="text-align:right;">₹4500.00</td></tr><tr><td>SGST</td><td style="text-align:right;">₹4500.00</td></tr><tr style="font-weight:bold;font-size:14px;"><td>Grand Total</td><td style="text-align:right;">₹59000.00</td></tr></table>
+      </div>
+      
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:15px;">
+      <div>
+        <strong>Bank Details</strong>
+        <p>Bank: Kotak Mahindra Bank, FARIDABAD BRANCH</p>
+        <p>A/c Holder: PLUTO ELECTRICA</p>
+        <p>A/c No: 0243351000004869</p>
+        <p>IFSC: KKBK0004329</p>
+        <p>UPI: jaswantsoni1812-1@okicici</p>
+      </div>
+      <div style="text-align:center;"><p style="font-size:10px;">Scan to Pay</p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAACWCAYAAAA8AXHiAAAAAklEQVR4AewaftIAAAhBSURBVO3BUY4dt5YAwcxC73/LOfohQAiiUbpqyn6DE2E/MMY3exjjgocxLngY44IvfqJyU8VbKkvFiconKnYq361iUdlVnKicVCwqJxU7lZsqlocxLngY44Iv/kHFd1B5Q+UtlZOK71ZxorJU7FSWihOVXcUbFZ+o+A4qv/IwxgUPY1zwMMYFX/wGlTcq3lI5qTipOFF5o2JXcaKyVOwqFpW3VE5UlooTlV3FJ1TeqHjjYYwLHsa44Iv/hyoWlV3FicobKruKT1S8obKr+K97GOOChzEueBjjgi/+R6jsKk5UlooTlV3ForKrOFF5Q2VXcaJyonKislT8Wx7GuOBhjAu++A0V/xUqb6icVOxU/i0qu4oTlaVip/KJiu/0MMYFD2Nc8DDGBV/8A5W/qWKnslTsVJaKncpSsVN5o2KnslScVOxUloqdylKxU1kqvpvKTQ9jXPAwxgVf/KTif13ForKrOKk4qVhUdhWLylsVi8qu4qRiUdlVnFT8LQ9jXPAwxgUPY1xgP7BRWSp2Kn+q4juonFS8ofJWxYnKd6tYVE4qdipLxU7lT1W88TDGBQ9jXPDFP1DZVZyoLBVvqSwVJyq7ikXlLZWl4kRlp7JUvFWxqOwqTlROKhaVE5VdxaKyq1hUdhW/62GMCx7GuOBhjAu++AcVO5WTihOVpeITFZ9Q2VW8UXGiclLxlsobFTuVpWKn8kbFTuUTKkvF8jDGBQ9jXPDFP1DZVZyoLBW7ikXlRGVXsajsKj6hslScqLxVcaKyVJyovFVxUrGo7FROKhaVE5U3Hsa44GGMCx7GuOCLn1QsKicqb6ksFTuVpeKkYqeyVOxUloq3VE4qTlSWihOVXcVScaKyqzhRWSp2KkvFWyonFb/yMMYFD2Nc8MVvUFkqTlR2FYvKWyqfqFhUdhWLyknFTmWp+ETFTmWp2KksFTuVk4pFZVexqJxUvKWyVCwPY1zwMMYFD2NcYD+wUTmpWFR2FScqJxWLyknFTuWk4kRlqdipnFR8QmWpOFHZVSwqJxU7laVip7JU7FSWip3KGxXLwxgXPIxxwRc/qVhUdionKicVi8pbFScVi8pOZanYVSwqb6ksFScq361ip3JS8d0qftfDGBc8jHHBwxgX2A9sVD5RsaicVLylslTsVJaKE5VdxRsqu4pFZVexqNxW8YbKruITKm9ULA9jXPAwxgX2AwcqJxUnKruKReW7VexUlooTlV3FiconKhaVXcWiclKxU/lTFTuVpeItlaVieRjjgocxLngY44IvPqTylspScaKyq1hUdhVvqOwqPlGxqOwqFpWdyicq3qh4S+WkYlHZVSwqu4pfeRjjgocxLvjiJypvVOxUlopPVOxUloqdyknFJ1SWip3KJyoWlZ3Kn1LZVdxU8cbDGBc8jHHBwxgXfPGTihOVT6h8t4pF5S2VpeKtikXlpOI7qCwV36FiUTmpOFHZVfzKwxgXPIxxgf3AgcquYlF5q+JPqewqFpW3Kk5UTioWlV3ForKrOFFZKnYqf1PFonJSsVNZKpaHMS54GOOChzEusB/YqCwVO5Wl4kTlpOJE5a2KN1ROKnYqS8VO5Y2KncpScaKyq1hUdhUnKicVf8vDGBc8jHGB/cCBylsVf5PKScWJylLxlspJxSdUloqdylLxCZW3KhaVT1QsD2Nc8DDGBQ9jXGA/8M1UTio+oXJScaKyq1hU3qo4UfmbKhaVXcWJylKxU1kqdipvVCwPY1zwMMYF9gMfUNlV/CmVk4q3VJaKT6h8h4pF5aTiEyonFScqJxV/6mGMCx7GuOBhjAvsBzYqS8UnVN6qWFR2FYvKScVtKicVn1D5UxXfQWWpOFE5qVgexrjgYYwLvvgNKkvFTuWkYlHZqSwVO5VPqCwVO5Wl4kTlLZWTik9U/CmVtyoWlV3F73oY44KHMS54GOOCL35SsaicqJxU7FSWihOVXcWisqs4qVhUvkPFicpScaKyq1hUTlR2FW9U7FSWip3KUrFT+V0PY1zwMMYF9gMblaVip3JS8YbKd6h4Q+UTFScqJxU7laXiLZWlYqeyVOxUTioWlU9UvPEwxgUPY1zwMMYFX3yo4kTlrYpF5aRip3JScVLxpypOVL5DxScqTlQ+UbGo7Cp+5WGMCx7GuOCLD6mcVJyo7FSWik9UvKWyVOxUlopPVHxC5aTiRGVX8UbFTmWpOKl442GMCx7GuOBhjAu++FDFicpJxSdUdhUnKm+o7CoWlV3ForKrWFROKnYqJxWLyq5iUdmpvKFyonJSsVNZKpaHMS54GOOCL35ScVLxRsVbKm9U7FQ+UfHdVJaKE5VdxYnKUrFTeaPiLZWlYqfyux7GuOBhjAsexrjgi5+o3FSxq1hUvkPFJ1Q+UbGonFTsVE4qFpVdxaLylspS8VbForKr+JWHMS54GOOCL/5BxXdQOVFZKnYqn1BZKnYqS8Wu4kTljYoTlV3FonJSsVP5RMXf8jDGBQ9jXPAwxgVf/AaVNypuqzhROak4UTmpWFROVE4qdiqfqDhRWVQ+ofKWylKxPIxxwcMYF3zxH6Kyq1hUdhVvqJxU7CoWlbdUloqdyhsV363iRGVXsaj8qYcxLngY44KHMS744j+k4t+kslScVJyonKjsKhaVk4qdylLxlspSsVNZKk5UdhW/8jDGBQ9jXPDFb6j4bhUnKkvFicqu4kRlUfmEyknFTmWp2KmcVPwplROVE5U/9TDGBQ9jXPAwxgVf/AOV21ROKk5U3lA5qThR2VUsFTuVk4pF5aTiRGVXsajsKk5UlooTlV3F73oY44KHMS6wHxjjmz2MccHDGBf8H4CG01iTekWpAAAAAElFTkSuQmCC" alt="QR" style="width:120px;"></div>
+    </div>
+  
+      <div style="font-size:10px;margin-top:10px;"><p><strong>Notes:</strong> For Site B electrical work</p></div>
+      <div style="text-align:right;margin-top:30px;">
+        <p>For <strong>PLUTO ELECTRICA</strong></p><p style="margin-top:40px;">Authorized Signatory</p>
+      </div>
+    </div>
+    <div class="footer">Computer generated invoice — no signature required</div>
+  </div></body></html>

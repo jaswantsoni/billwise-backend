@@ -1,0 +1,531 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "The AWS CloudFormation template for this Serverless application",
+  "Resources": {
+    "ServerlessDeploymentBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ServerlessDeploymentBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "ServerlessDeploymentBucket"
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:*",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "ServerlessDeploymentBucket"
+                      },
+                      "/*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "ServerlessDeploymentBucket"
+                      }
+                    ]
+                  ]
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": false
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "AppLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/billvise-backend-dev-app"
+      }
+    },
+    "CronJobsLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/billvise-backend-dev-cronJobs"
+      }
+    },
+    "IamRoleLambdaExecution": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": {
+              "Fn::Join": [
+                "-",
+                [
+                  "billvise-backend",
+                  "dev",
+                  "lambda"
+                ]
+              ]
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:CreateLogGroup",
+                    "logs:TagResource"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/billvise-backend-dev*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/billvise-backend-dev*:*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ],
+        "Path": "/",
+        "RoleName": {
+          "Fn::Join": [
+            "-",
+            [
+              "billvise-backend",
+              "dev",
+              {
+                "Ref": "AWS::Region"
+              },
+              "lambdaRole"
+            ]
+          ]
+        }
+      }
+    },
+    "AppLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/billvise-backend/dev/1773764416856-2026-03-17T16:20:16.856Z/billvise-backend.zip"
+        },
+        "Handler": "lambda.handler",
+        "Runtime": "nodejs18.x",
+        "FunctionName": "billvise-backend-dev-app",
+        "MemorySize": 512,
+        "Timeout": 30,
+        "Environment": {
+          "Variables": {
+            "NODE_ENV": "dev",
+            "DATABASE_URL": "mongodb+srv://hrconnect:BhhzaYpiVQ5AFG@cluster0.q8twacw.mongodb.net/Biller-dev?appName=Cluster0",
+            "JWT_SECRET": "cd68cf6cbb0c017ba90cd283ef369bdfa81fa7d6e87646e90959665aa6a98fcf",
+            "SESSION_SECRET": "cd68cf6cbb0c017ba90cd283ef369bdfa81fa7d6e87646e90959665aa6a98fcf",
+            "GOOGLE_CLIENT_ID": "620287417164-a42solq6t7vnq00qpanluo76en08a9ul.apps.googleusercontent.com",
+            "GOOGLE_CLIENT_SECRET": "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",
+            "FRONTEND_URL": "http://localhost:8080",
+            "GOTENBERG_URL": "https://gotenberg-production-8e0f.up.railway.app",
+            "SERVERLESS_PDF_URL": "",
+            "USE_SERVERLESS_PDF": "false",
+            "WEBHOOK_SECRET": "cd68cf6cbb0c017ba90cd283ef369bdfa81fa7d6e87646e90959665aa6a98fcf",
+            "EMAIL_FROM_NAME": "BillWise Support",
+            "EMAIL_NO_REPLY": "support@manavly.com",
+            "EMAIL_HOST": "smtpout.secureserver.net",
+            "EMAIL_PORT": "465",
+            "EMAIL_USER": "support@manavly.com",
+            "EMAIL_PASSWORD": "Jassi@1812",
+            "GMAIL_CLIENT_ID": "620287417164-a42solq6t7vnq00qpanluo76en08a9ul.apps.googleusercontent.com",
+            "GMAIL_CLIENT_SECRET": "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",
+            "GST_API_KEY": "292126ac5d453ab5b523291630617912",
+            "RZP_KEY_ID": "rzp_test_SBBUX8fVGEKDFX",
+            "RZP_KEY_SECRET": "XODo3vsZMehCb0J5wVVqpmi7",
+            "BACKEND_URL": "https://d904-2409-4090-801c-8807-30cf-7b72-f3c2-9493.ngrok-free.app",
+            "GOOGLE_CALLBACK_URL": "https://d904-2409-4090-801c-8807-30cf-7b72-f3c2-9493.ngrok-free.app/auth/google/callback",
+            "MAILER_FRONTEND_URL": "http://localhost:8081",
+            "MAILER_GOOGLE_CALLBACK_URL": "https://d904-2409-4090-801c-8807-30cf-7b72-f3c2-9493.ngrok-free.app/auth/google/mailer-callback",
+            "PORT": "3000",
+            "EWAY_USERNAME": "",
+            "EWAY_PASSWORD": "",
+            "EWAY_APP_KEY": "",
+            "EMAIL_SUPPORT": "support@manavly.com",
+            "EMAIL_INFO": "support@manavly.com"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "AppLogGroup"
+      ]
+    },
+    "CronJobsLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/billvise-backend/dev/1773764416856-2026-03-17T16:20:16.856Z/billvise-backend.zip"
+        },
+        "Handler": "lambda.cronHandler",
+        "Runtime": "nodejs18.x",
+        "FunctionName": "billvise-backend-dev-cronJobs",
+        "MemorySize": 512,
+        "Timeout": 30,
+        "Environment": {
+          "Variables": {
+            "NODE_ENV": "dev",
+            "DATABASE_URL": "mongodb+srv://hrconnect:BhhzaYpiVQ5AFG@cluster0.q8twacw.mongodb.net/Biller-dev?appName=Cluster0",
+            "JWT_SECRET": "cd68cf6cbb0c017ba90cd283ef369bdfa81fa7d6e87646e90959665aa6a98fcf",
+            "SESSION_SECRET": "cd68cf6cbb0c017ba90cd283ef369bdfa81fa7d6e87646e90959665aa6a98fcf",
+            "GOOGLE_CLIENT_ID": "620287417164-a42solq6t7vnq00qpanluo76en08a9ul.apps.googleusercontent.com",
+            "GOOGLE_CLIENT_SECRET": "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",
+            "FRONTEND_URL": "http://localhost:8080",
+            "GOTENBERG_URL": "https://gotenberg-production-8e0f.up.railway.app",
+            "SERVERLESS_PDF_URL": "",
+            "USE_SERVERLESS_PDF": "false",
+            "WEBHOOK_SECRET": "cd68cf6cbb0c017ba90cd283ef369bdfa81fa7d6e87646e90959665aa6a98fcf",
+            "EMAIL_FROM_NAME": "BillWise Support",
+            "EMAIL_NO_REPLY": "support@manavly.com",
+            "EMAIL_HOST": "smtpout.secureserver.net",
+            "EMAIL_PORT": "465",
+            "EMAIL_USER": "support@manavly.com",
+            "EMAIL_PASSWORD": "Jassi@1812",
+            "GMAIL_CLIENT_ID": "620287417164-a42solq6t7vnq00qpanluo76en08a9ul.apps.googleusercontent.com",
+            "GMAIL_CLIENT_SECRET": "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",
+            "GST_API_KEY": "292126ac5d453ab5b523291630617912",
+            "RZP_KEY_ID": "rzp_test_SBBUX8fVGEKDFX",
+            "RZP_KEY_SECRET": "XODo3vsZMehCb0J5wVVqpmi7",
+            "BACKEND_URL": "https://d904-2409-4090-801c-8807-30cf-7b72-f3c2-9493.ngrok-free.app",
+            "GOOGLE_CALLBACK_URL": "https://d904-2409-4090-801c-8807-30cf-7b72-f3c2-9493.ngrok-free.app/auth/google/callback",
+            "MAILER_FRONTEND_URL": "http://localhost:8081",
+            "MAILER_GOOGLE_CALLBACK_URL": "https://d904-2409-4090-801c-8807-30cf-7b72-f3c2-9493.ngrok-free.app/auth/google/mailer-callback",
+            "PORT": "3000",
+            "EWAY_USERNAME": "",
+            "EWAY_PASSWORD": "",
+            "EWAY_APP_KEY": "",
+            "EMAIL_SUPPORT": "support@manavly.com",
+            "EMAIL_INFO": "support@manavly.com"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "CronJobsLogGroup"
+      ]
+    },
+    "AppLambdaVersionO4fbGUosKLDPApZm51YIj0CHdyvpkI8vGX00GgE3uew": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "AppLambdaFunction"
+        },
+        "CodeSha256": "TtrRAX7nW7e//TnxLBavp6Zcgsd+VHkwavK97H4u4ls="
+      }
+    },
+    "CronJobsLambdaVersionhd4tcTlRbXY8OZSU9RzQHfdEGhMzh7SdXzzt30EjKf0": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "CronJobsLambdaFunction"
+        },
+        "CodeSha256": "TtrRAX7nW7e//TnxLBavp6Zcgsd+VHkwavK97H4u4ls="
+      }
+    },
+    "CronJobsEventsRuleSchedule1": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "ScheduleExpression": "cron(0 9 * * ? *)",
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Arn": {
+              "Fn::GetAtt": [
+                "CronJobsLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Id": "cronJobsSchedule"
+          }
+        ]
+      }
+    },
+    "CronJobsLambdaPermissionEventsRuleSchedule1": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "CronJobsLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {
+          "Fn::GetAtt": [
+            "CronJobsEventsRuleSchedule1",
+            "Arn"
+          ]
+        }
+      }
+    },
+    "HttpApi": {
+      "Type": "AWS::ApiGatewayV2::Api",
+      "Properties": {
+        "Name": "dev-billvise-backend",
+        "ProtocolType": "HTTP"
+      }
+    },
+    "HttpApiStage": {
+      "Type": "AWS::ApiGatewayV2::Stage",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "StageName": "$default",
+        "AutoDeploy": true,
+        "DefaultRouteSettings": {
+          "DetailedMetricsEnabled": false
+        }
+      }
+    },
+    "AppLambdaPermissionHttpApi": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "AppLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Ref": "HttpApi"
+              },
+              "/*"
+            ]
+          ]
+        }
+      }
+    },
+    "HttpApiIntegrationApp": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "IntegrationType": "AWS_PROXY",
+        "IntegrationUri": {
+          "Fn::GetAtt": [
+            "AppLambdaFunction",
+            "Arn"
+          ]
+        },
+        "PayloadFormatVersion": "2.0",
+        "TimeoutInMillis": 30000
+      }
+    },
+    "HttpApiRouteAnyProxyVar": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "RouteKey": "ANY /{proxy+}",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "HttpApiIntegrationApp"
+              }
+            ]
+          ]
+        }
+      },
+      "DependsOn": "HttpApiIntegrationApp"
+    },
+    "HttpApiRouteAny": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "HttpApi"
+        },
+        "RouteKey": "ANY /",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "HttpApiIntegrationApp"
+              }
+            ]
+          ]
+        }
+      },
+      "DependsOn": "HttpApiIntegrationApp"
+    }
+  },
+  "Outputs": {
+    "ServerlessDeploymentBucketName": {
+      "Value": {
+        "Ref": "ServerlessDeploymentBucket"
+      },
+      "Export": {
+        "Name": "sls-billvise-backend-dev-ServerlessDeploymentBucketName"
+      }
+    },
+    "AppLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "AppLambdaVersionO4fbGUosKLDPApZm51YIj0CHdyvpkI8vGX00GgE3uew"
+      },
+      "Export": {
+        "Name": "sls-billvise-backend-dev-AppLambdaFunctionQualifiedArn"
+      }
+    },
+    "CronJobsLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "CronJobsLambdaVersionhd4tcTlRbXY8OZSU9RzQHfdEGhMzh7SdXzzt30EjKf0"
+      },
+      "Export": {
+        "Name": "sls-billvise-backend-dev-CronJobsLambdaFunctionQualifiedArn"
+      }
+    },
+    "HttpApiId": {
+      "Description": "Id of the HTTP API",
+      "Value": {
+        "Ref": "HttpApi"
+      },
+      "Export": {
+        "Name": "sls-billvise-backend-dev-HttpApiId"
+      }
+    },
+    "HttpApiUrl": {
+      "Description": "URL of the HTTP API",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Ref": "HttpApi"
+            },
+            ".execute-api.",
+            {
+              "Ref": "AWS::Region"
+            },
+            ".",
+            {
+              "Ref": "AWS::URLSuffix"
+            }
+          ]
+        ]
+      },
+      "Export": {
+        "Name": "sls-billvise-backend-dev-HttpApiUrl"
+      }
+    }
+  }
+}

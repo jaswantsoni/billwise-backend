@@ -1,0 +1,102 @@
+<!DOCTYPE html><html><head><style>
+    
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #333; }
+  @media print {
+    body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .invoice { margin: 0; padding: 10mm; }
+  }
+  table { width: 100%; border-collapse: collapse; }
+
+    .invoice { max-width: 800px; margin: 0 auto; padding: 25px; font-family: 'Helvetica Neue', Arial, sans-serif; }
+    .header-bar { background: linear-gradient(135deg, #1a56db, #2563eb); color: #fff; padding: 20px 25px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; }
+    .header-bar h2 { margin: 0; font-size: 20px; }
+    .header-bar p { margin: 2px 0; font-size: 11px; opacity: 0.9; }
+    .body-wrap { border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px; padding: 20px; }
+    .badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 20px; font-size: 10px; }
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #f8fafc; padding: 12px; border-radius: 6px; margin: 15px 0; }
+    .meta-grid p { font-size: 11px; margin: 2px 0; }
+    .addr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 15px 0; }
+    .addr-grid p { font-size: 11px; margin: 1px 0; }
+    .addr-card { background: #f8fafc; padding: 12px; border-radius: 6px; border-left: 3px solid #2563eb; }
+    .items { margin: 15px 0; border-radius: 6px; overflow: hidden; }
+    .items th { background: #f1f5f9; color: #334155; padding: 8px 6px; font-size: 10px; text-align: center; font-weight: 600; }
+    .items td { padding: 6px; font-size: 10px; text-align: center; border-bottom: 1px solid #f1f5f9; }
+    .totals-wrap { display: flex; justify-content: space-between; margin-top: 15px; }
+    .totals td { padding: 4px 10px; font-size: 12px; }
+    .footer { text-align: center; font-size: 9px; color: #94a3b8; margin-top: 20px; }
+  </style></head><body><div class="invoice">
+    <div class="header-bar">
+      <div>
+        
+        <h2>PLUTO ELECTRICA</h2>
+        <p>NANGLA ENCLAVE PART - 1, SOHNA ROAD, FARIDABAD, Faridabad, Haryana, 121004</p>
+        <p>GSTIN: 06CJPPD2198L1ZQ</p>
+        <p>+918527716732 | jaswantsoni1812@gmail.com</p>
+      </div>
+      <div style="text-align:right;">
+        <h3 style="font-size:22px;margin:0;">TAX INVOICE</h3>
+        <span class="badge">ORIGINAL FOR BUYER</span>
+      </div>
+    </div>
+    <div class="body-wrap">
+      <div class="meta-grid">
+        <p><strong>Invoice No:</strong> INV/26-27/006</p>
+        <p><strong>Date:</strong> 14/4/2026</p>
+        <p><strong>Due Date:</strong> 14/4/2026</p>
+        <p><strong>Place of Supply:</strong> </p>
+        <p><strong>Reverse Charge:</strong> No</p>
+        <p><strong>Payment Terms:</strong> NET_30</p>
+        
+        
+      </div>
+      <div class="addr-grid">
+        <div class="addr-card"><div><strong>Bill To</strong><p>Same as Billing Address</p></div></div>
+        <div class="addr-card"><div><strong>Ship To</strong><p>Same as Billing Address</p></div></div>
+      </div>
+      <table class="items">
+        <thead><tr>
+          <th>#</th><th>Item</th><th>HSN</th><th>Qty</th><th>Unit</th><th>Rate</th>
+          <th>Tax</th>
+          <th>CGST</th><th>SGST</th><th>Amount</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+              <td>1</td><td style="text-align:left;">Ceiling Fan 48"</td><td>8414</td>
+              <td>4</td><td>PCS</td><td>₹2800.00</td>
+              <td>18%</td>
+              <td>₹1008.00</td><td>₹1008.00</td>
+              <td>₹11200.00</td>
+            </tr><tr>
+              <td>2</td><td style="text-align:left;">Switch Socket 5A</td><td>8536</td>
+              <td>2</td><td>PCS</td><td>₹95.00</td>
+              <td>18%</td>
+              <td>₹17.10</td><td>₹17.10</td>
+              <td>₹190.00</td>
+            </tr>
+        </tbody>
+      </table>
+      <div class="totals-wrap">
+        <div style="font-size:11px;"><p><strong>In Words:</strong> Thirteen Thousand Four Hundred Forty Rupees and Twenty Paise Only</p></div>
+        <table style="width:250px;" class="totals"><tr><td>Subtotal</td><td style="text-align:right;">₹11390.00</td></tr><tr><td>CGST</td><td style="text-align:right;">₹1025.10</td></tr><tr><td>SGST</td><td style="text-align:right;">₹1025.10</td></tr><tr style="font-weight:bold;font-size:14px;"><td>Grand Total</td><td style="text-align:right;">₹13440.20</td></tr></table>
+      </div>
+      
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:15px;">
+      <div>
+        <strong>Bank Details</strong>
+        <p>Bank: Kotak Mahindra Bank, FARIDABAD BRANCH</p>
+        <p>A/c Holder: PLUTO ELECTRICA</p>
+        <p>A/c No: 0243351000004869</p>
+        <p>IFSC: KKBK0004329</p>
+        <p>UPI: jaswantsoni1812-1@okicici</p>
+      </div>
+      <div style="text-align:center;"><p style="font-size:10px;">Scan to Pay</p><img src="data:image/png;base64,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" alt="QR" style="width:120px;"></div>
+    </div>
+  
+      <div style="font-size:10px;margin-top:10px;"></div>
+      <div style="text-align:right;margin-top:30px;">
+        <p>For <strong>PLUTO ELECTRICA</strong></p><p style="margin-top:40px;">Authorized Signatory</p>
+      </div>
+    </div>
+    <div class="footer">Computer generated invoice — no signature required</div>
+  </div></body></html>

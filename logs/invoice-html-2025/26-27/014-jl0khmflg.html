@@ -1,0 +1,116 @@
+<!DOCTYPE html><html><head><style>
+    
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; color: #333; }
+  @media print {
+    body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .invoice { margin: 0; padding: 10mm; }
+  }
+  table { width: 100%; border-collapse: collapse; }
+
+    .invoice { max-width: 800px; margin: 0 auto; padding: 20px; border: 2px solid #333; }
+    .header { display: flex; justify-content: space-between; border-bottom: 2px solid #333; padding-bottom: 10px; }
+    .meta-table td { padding: 3px 8px; font-size: 11px; }
+    .items th { background: #333; color: #fff; padding: 6px 4px; font-size: 10px; text-align: center; }
+    .items td { border: 1px solid #ddd; padding: 5px 4px; font-size: 10px; text-align: center; }
+    .items tr:nth-child(even) { background: #f9f9f9; }
+    .section { margin: 10px 0; }
+    .addr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .addr-grid p { font-size: 11px; margin: 1px 0; }
+    .totals td { padding: 3px 8px; font-size: 12px; }
+    .footer { text-align: center; font-size: 9px; color: #888; margin-top: 15px; border-top: 1px solid #ddd; padding-top: 5px; }
+  </style></head><body><div class="invoice">
+    <div class="header">
+      
+  <div style="">
+    
+    <h2 style="margin:0;font-size:18px;">PLUTO ELECTRICA</h2>
+    <p style="margin:2px 0;font-size:11px;">NANGLA ENCLAVE PART - 1, SOHNA ROAD, FARIDABAD, Faridabad, Haryana, 121004</p>
+    <p style="margin:1px 0;font-size:11px;">GSTIN: 06CJPPD2198L1ZQ</p>
+    
+    <p style="margin:1px 0;font-size:11px;">Phone: +91 8285239970 | Email: sksoni278mohan@gmail.com</p>
+  </div>
+
+      <div style="text-align:right;">
+        <h3 style="font-size:16px;text-transform:uppercase;">TAX INVOICE</h3>
+        <p style="font-size:10px;color:#666;">ORIGINAL FOR BUYER</p>
+      </div>
+    </div>
+    <div class="section"><table class="meta-table">
+    <tr><td><strong>Invoice No:</strong></td><td>2025/26-27/014</td><td><strong>Invoice Date:</strong></td><td>8/4/2026</td></tr>
+    <tr><td><strong>Due Date:</strong></td><td>8/4/2026</td><td><strong>Place of Supply:</strong></td><td>Delhi (07)</td></tr>
+    <tr><td><strong>Reverse Charge:</strong></td><td>No</td><td><strong>Payment Terms:</strong></td><td>IMMEDIATE</td></tr>
+    
+    
+    
+    
+  </table></div>
+    <div class="section addr-grid">
+      
+    <div>
+      <strong>Bill To</strong>
+      <p style="font-weight:600;">SUNNY LIGHTS</p>
+      <p>Bhagirath Palace, Chandni Chowk Area</p>
+      <p>New Delhi</p>
+      <p>North East Delhi, Delhi - 110006</p>
+      <p>GSTIN: 07AOWPK9610A1ZU</p>
+      <p>State: Delhi (07)</p>
+      
+    </div>
+  
+      
+    <div>
+      <strong>Ship To</strong>
+      <p style="font-weight:600;">SUNNY LIGHTS</p>
+      <p>Bhagirath Palace, Chandni Chowk Area</p>
+      <p>New Delhi</p>
+      <p>North East Delhi, Delhi - 110006</p>
+      <p>GSTIN: 07AOWPK9610A1ZU</p>
+      <p>State: Delhi (07)</p>
+      
+    </div>
+  
+    </div>
+    <table class="items">
+      <thead><tr>
+        <th>Sr</th><th>Description</th><th>HSN/SAC</th><th>Qty</th><th>Unit</th><th>Rate</th>
+        
+        <th>Tax%</th><th>CGST</th><th>SGST</th><th>Amount</th>
+      </tr></thead>
+      <tbody>
+        <tr>
+            <td>1</td><td style="text-align:left;">Oval Light 8'x2.5'</td>
+            <td>-</td><td>1</td><td>PCS</td><td>₹25000.00</td>
+            
+            <td>18%</td>
+            <td>₹1906.78</td><td>₹1906.78</td>
+            <td>₹21186.44</td>
+          </tr>
+      </tbody>
+    </table>
+    <div class="section" style="display:flex;justify-content:space-between;">
+      <div style="flex:1;font-size:11px;">
+        <p><strong>Amount in Words:</strong> Twenty-five Thousand Rupees Only</p>
+      </div>
+      <table style="width:250px;" class="totals"><tr><td>Subtotal</td><td style="text-align:right;">₹21186.44</td></tr><tr><td>CGST</td><td style="text-align:right;">₹1906.78</td></tr><tr><td>SGST</td><td style="text-align:right;">₹1906.78</td></tr><tr style="font-weight:bold;font-size:14px;"><td>Grand Total</td><td style="text-align:right;">₹25000.00</td></tr></table>
+    </div>
+    
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:15px;">
+      <div>
+        <strong>Bank Details</strong>
+        <p>Bank: Development Bank of Singapore, FARIDABAD</p>
+        <p>A/c Holder: PLUTO ELECTRICA</p>
+        <p>A/c No: 0243351000004869</p>
+        <p>IFSC: DBSS0IN0243</p>
+        
+      </div>
+      
+    </div>
+  
+    <div class="section" style="font-size:10px;"><p><strong>Declaration:</strong> We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</p></div>
+    <div style="text-align:right;margin-top:30px;">
+      <p>For <strong>PLUTO ELECTRICA</strong></p>
+      <p style="margin-top:40px;">Authorized Signatory</p>
+    </div>
+    <div class="footer">This is a computer generated invoice and does not require a physical signature</div>
+  </div></body></html>
