@@ -53,6 +53,11 @@ app.use(cors({
     
     if (!origin) return callback(null, true);
     
+    // Allow all origins for SaaS API routes
+    if (req && req.path && req.path.startsWith('/api/saas')) {
+      return callback(null, true);
+    }
+    
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -116,6 +121,7 @@ app.use('/api/data', require('./routes/dataExport'));
 app.use('/api/ledger', require('./routes/ledger'));
 app.use('/api/payments', require('./routes/payment'));
 app.use('/api/telegram', require('./routes/telegram'));
+app.use('/api/saas', require('./routes/saas'));
 
 app.get('/public/invoice/:id/:signature', pdfController.getInvoicePDFPublic);
 

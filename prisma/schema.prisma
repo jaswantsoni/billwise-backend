@@ -39,6 +39,7 @@ model User {
   updatedAt     DateTime       @updatedAt
   organisations Organisation[]
   subscriptions Subscription[]
+  apiKeys       ApiKey[]
 }
 
 model Organisation {
@@ -90,6 +91,7 @@ model Organisation {
   customers Customer[]
   products  Product[]
   suppliers Supplier[]
+  apiKeys   ApiKey[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 }
@@ -665,4 +667,18 @@ model Lead {
   @@index([status])
   @@index([source])
   @@index([createdAt])
+}
+
+model ApiKey {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  key            String       @unique
+  name           String       // e.g. "My Integration", "Shopify Sync"
+  userId         String       @db.ObjectId
+  organisationId String       @db.ObjectId
+  active         Boolean      @default(true)
+  lastUsedAt     DateTime?
+  createdAt      DateTime     @default(now())
+
+  user         User         @relation(fields: [userId], references: [id])
+  organisation Organisation @relation(fields: [organisationId], references: [id])
 }
