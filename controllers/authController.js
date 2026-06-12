@@ -24,7 +24,8 @@ exports.register = async (req, res) => {
         password: hashedPassword,
         planTier: 'premium',
         planStatus: 'active',
-        planExpiry: trialEndDate
+        planExpiry: trialEndDate,
+        telegramId: undefined, // explicitly undefined — not null — avoids unique index conflict
       }
     });
 

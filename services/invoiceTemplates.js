@@ -134,7 +134,7 @@ const classicTemplate = (invoice, organisation, billingAddress, shippingAddress,
   const hasDiscount = invoice.items.some(i => i.discount > 0);
   const total = invoice.total || invoice.totalAmount || 0;
   const subtotal = invoice.subtotal || 0;
-  return `<!DOCTYPE html><html><head><style>
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
     ${baseCSS}
     .invoice { max-width: 800px; margin: 0 auto; padding: 20px; border: 2px solid #333; }
     .header { display: flex; justify-content: space-between; border-bottom: 2px solid #333; padding-bottom: 10px; }
@@ -202,7 +202,7 @@ const classicTemplate = (invoice, organisation, billingAddress, shippingAddress,
 const modernTemplate = (invoice, organisation, billingAddress, shippingAddress, h) => {
   const hasDiscount = invoice.items.some(i => i.discount > 0);
   const total = invoice.total || invoice.totalAmount || 0;
-  return `<!DOCTYPE html><html><head><style>
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
     ${baseCSS}
     .invoice { max-width: 800px; margin: 0 auto; padding: 25px; font-family: 'Helvetica Neue', Arial, sans-serif; }
     .header-bar { background: linear-gradient(135deg, #1a56db, #2563eb); color: #fff; padding: 20px 25px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; }
@@ -289,7 +289,7 @@ const modernTemplate = (invoice, organisation, billingAddress, shippingAddress, 
 const minimalTemplate = (invoice, organisation, billingAddress, shippingAddress, h) => {
   const hasDiscount = invoice.items.some(i => i.discount > 0);
   const total = invoice.total || invoice.totalAmount || 0;
-  return `<!DOCTYPE html><html><head><style>
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
     ${baseCSS}
     body { font-family: 'Georgia', serif; color: #222; }
     .invoice { max-width: 780px; margin: 0 auto; padding: 30px; }
@@ -367,7 +367,7 @@ const minimalTemplate = (invoice, organisation, billingAddress, shippingAddress,
 const professionalTemplate = (invoice, organisation, billingAddress, shippingAddress, h) => {
   const hasDiscount = invoice.items.some(i => i.discount > 0);
   const total = invoice.total || invoice.totalAmount || 0;
-  return `<!DOCTYPE html><html><head><style>
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
     ${baseCSS}
     .invoice { max-width: 800px; margin: 0 auto; }
     .header { background: #1e293b; color: #fff; padding: 25px; display: flex; justify-content: space-between; }
@@ -451,7 +451,7 @@ const professionalTemplate = (invoice, organisation, billingAddress, shippingAdd
 const compactTemplate = (invoice, organisation, billingAddress, shippingAddress, h) => {
   const hasDiscount = invoice.items.some(i => i.discount > 0);
   const total = invoice.total || invoice.totalAmount || 0;
-  return `<!DOCTYPE html><html><head><style>
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
     ${baseCSS}
     body { font-size: 10px; }
     .invoice { max-width: 780px; margin: 0 auto; padding: 15px; }
@@ -529,7 +529,7 @@ const compactTemplate = (invoice, organisation, billingAddress, shippingAddress,
 const elegantTemplate = (invoice, organisation, billingAddress, shippingAddress, h) => {
   const hasDiscount = invoice.items.some(i => i.discount > 0);
   const total = invoice.total || invoice.totalAmount || 0;
-  return `<!DOCTYPE html><html><head><style>
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
     ${baseCSS}
     body { font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, serif; color: #2d3436; }
     .invoice { max-width: 800px; margin: 0 auto; padding: 30px; }
@@ -603,7 +603,7 @@ const elegantTemplate = (invoice, organisation, billingAddress, shippingAddress,
 const boldTemplate = (invoice, organisation, billingAddress, shippingAddress, h) => {
   const hasDiscount = invoice.items.some(i => i.discount > 0);
   const total = invoice.total || invoice.totalAmount || 0;
-  return `<!DOCTYPE html><html><head><style>
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
     ${baseCSS}
     body { font-family: Arial, sans-serif; color: #1a1a2e; }
     .invoice { max-width: 800px; margin: 0 auto; padding: 0; }

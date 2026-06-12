@@ -159,7 +159,7 @@ router.post('/customers/bulk', apiKeyAuth, requirePermission('customers:write'),
 
 router.post('/products', apiKeyAuth, requirePermission('products:write'), async (req, res) => {
   try {
-    const { name, sku, price, taxRate, unit, hsnCode, sacCode, description, images = [], taxInclusive = false } = req.body;
+    const { name, sku, price, taxRate, unit, hsnCode, sacCode, description, images = [], taxInclusive = true } = req.body;
     if (!name || price === undefined || taxRate === undefined || !unit)
       return err(res, 'name, price, taxRate, unit are required');
 
@@ -489,23 +489,31 @@ router.post('/invoices', apiKeyAuth, requirePermission('invoices:write'), async 
           taxAmount = taxableAmount * (taxRate / 100);
         }
 
+        taxableAmount = Math.round(taxableAmount * 100) / 100;
+        taxAmount     = Math.round(taxAmount * 100) / 100;
+
+        // CGST/SGST vs IGST per item (determined later by org/customer state)
+        // Pass 0 defaults — will be overridden below after state check
         return {
           productId: item.productId || null,
-          name: item.name || product?.name || 'Item',
+          description: item.name || product?.name || 'Item',
+          hsnSac: item.hsnCode || product?.hsnCode || product?.sacCode || null,
           quantity: qty,
-          price,
+          rate: price,
           taxRate,
           taxInclusive,
-          taxableAmount: Math.round(taxableAmount * 100) / 100,
-          taxAmount: Math.round(taxAmount * 100) / 100,
-          total: Math.round((taxableAmount + taxAmount) * 100) / 100,
-          hsnCode: item.hsnCode || product?.hsnCode || null,
           unit: item.unit || product?.unit || 'PCS',
+          amount: taxableAmount,
+          taxAmount,
+          cgst: 0,
+          sgst: 0,
+          igst: 0,
+          costPrice: product?.costPrice || 0,
         };
       })
     );
 
-    const subtotal = enrichedItems.reduce((s, i) => s + i.taxableAmount, 0);
+    const subtotal = enrichedItems.reduce((s, i) => s + i.amount, 0);
     const totalTax = enrichedItems.reduce((s, i) => s + i.taxAmount, 0);
     const total    = Math.round((subtotal + totalTax) * 100) / 100;
 
@@ -529,6 +537,14 @@ router.post('/invoices', apiKeyAuth, requirePermission('invoices:write'), async 
     const sgst = isInterState ? 0 : totalTax / 2;
     const igst = isInterState ? totalTax : 0;
 
+    // Apply per-item cgst/sgst/igst split
+    const finalItems = enrichedItems.map((item) => ({
+      ...item,
+      cgst: isInterState ? 0 : Math.round((item.taxAmount / 2) * 100) / 100,
+      sgst: isInterState ? 0 : Math.round((item.taxAmount / 2) * 100) / 100,
+      igst: isInterState ? Math.round(item.taxAmount * 100) / 100 : 0,
+    }));
+
     const invoice = await prisma.invoice.create({
       data: {
         invoiceNumber,
@@ -542,13 +558,14 @@ router.post('/invoices', apiKeyAuth, requirePermission('invoices:write'), async 
         shippingAddressId: shippingAddressId || billing?.id || null,
         placeOfSupply: billing?.state || org.state || '',
         subtotal: Math.round(subtotal * 100) / 100,
+        totalTax: Math.round(totalTax * 100) / 100,
         cgst: Math.round(cgst * 100) / 100,
         sgst: Math.round(sgst * 100) / 100,
         igst: Math.round(igst * 100) / 100,
         total,
         paymentStatus: 'UNPAID',
         notes: notes || null,
-        items: { create: enrichedItems },
+        items: { create: finalItems },
       },
       include: { items: true, customer: true },
     });

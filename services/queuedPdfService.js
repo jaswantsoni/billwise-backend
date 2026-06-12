@@ -100,8 +100,11 @@ class QueuedPdfService {
       // Create form data
       const form = new FormData();
       
-      // Add HTML file
-      form.append('files', Buffer.from(html), 'index.html');
+      // Add HTML file — explicitly set charset so Gotenberg/Chromium renders ₹ correctly
+      form.append('files', Buffer.from(html, 'utf8'), {
+        filename: 'index.html',
+        contentType: 'text/html; charset=utf-8',
+      });
       
       // Add CSS if provided
       if (options.css) {

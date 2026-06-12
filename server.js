@@ -46,6 +46,7 @@ app.use(cors({
       'http://localhost:8080',
       'http://localhost:5173',
       'http://localhost:3001',
+      'http://localhost:3000',
       'https://www.kampony.com',
       'https://kampony.com',
       'https://payments.kampony.com',
@@ -54,10 +55,8 @@ app.use(cors({
     
     if (!origin) return callback(null, true);
     
-    // Allow all origins for SaaS API routes
-    if (req && req.path && req.path.startsWith('/api/saas')) {
-      return callback(null, true);
-    }
+    // Allow all origins for SaaS API (API key auth handles security)
+    // Can't access req here — handled at route level instead
     
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
@@ -103,7 +102,6 @@ app.get('/saas-docs.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSaasSpec);
 });
-});
 
 app.use('/api/gst', gstRoutes);
 app.use('/api/eway', ewayRoutes);
@@ -137,6 +135,7 @@ app.use('/api/data', require('./routes/dataExport'));
 app.use('/api/ledger', require('./routes/ledger'));
 app.use('/api/payments', require('./routes/payment'));
 app.use('/api/telegram', require('./routes/telegram'));
+app.use('/api/saas', cors({ origin: '*', credentials: false }));
 app.use('/api/saas', require('./routes/saas'));
 
 app.get('/public/invoice/:id/:signature', pdfController.getInvoicePDFPublic);

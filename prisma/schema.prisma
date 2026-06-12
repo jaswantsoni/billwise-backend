@@ -22,7 +22,7 @@ model User {
   gmailTokenExpiry  DateTime?
 
   // Telegram
-  telegramId        String?   @unique
+  telegramId        String?
   telegramUsername  String?
   telegramLinkedAt  DateTime?
 
@@ -261,6 +261,7 @@ model Product {
   taxInclusive      Boolean            @default(false)
   currency          String             @default("INR")
   isActive          Boolean            @default(true)
+  images            String[]           @default([])
   organisationId    String             @db.ObjectId
   organisation      Organisation       @relation(fields: [organisationId], references: [id])
   invoiceItems      InvoiceItem[]
@@ -359,14 +360,14 @@ model InvoiceItem {
   invoice      Invoice  @relation(fields: [invoiceId], references: [id])
   productId    String   @db.ObjectId
   product      Product  @relation(fields: [productId], references: [id])
-  description  String
+  description  String?
   subDescription String? @default("")
   hsnSac       String?
   quantity     Float
   creditedQty  Float    @default(0)
   debitedQty   Float    @default(0)
   unit         String   @default("PCS")
-  rate         Float
+  rate         Float?
   discount     Float    @default(0)
   taxRate      Float
   taxInclusive Boolean  @default(false)
