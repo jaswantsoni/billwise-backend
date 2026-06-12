@@ -4,6 +4,7 @@ const cors = require('cors');
 const session = require('express-session');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./config/swagger');
+const swaggerSaasSpec = require('./config/swaggerSaas');
 const passport = require('./config/passport');
 const gstRoutes = require('./routes/gst');
 const ewayRoutes = require('./routes/eway');
