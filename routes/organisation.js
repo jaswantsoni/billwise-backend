@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const organisationController = require('../controllers/organisationController');
+const publicOrgController = require('../controllers/publicOrgController');
 const { authenticate } = require('../middleware/auth');
 
 // Configure multer for logo upload (base64 or file)
@@ -9,6 +10,10 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
+
+// Public showcase routes (no auth)
+router.get('/public', publicOrgController.listShowcaseOrgs);
+router.get('/public/:slug', publicOrgController.getPublicOrgPage);
 
 router.post('/', authenticate, organisationController.createOrganisation);
 router.get('/', authenticate, organisationController.getOrganisations);

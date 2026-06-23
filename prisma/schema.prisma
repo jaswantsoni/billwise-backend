@@ -65,6 +65,11 @@ model Organisation {
   ifsc              String?
   upi               String?
 
+  // Public showcase (SEO)
+  seoSlug             String?  @unique
+  showcaseConsent     Boolean  @default(false)
+  showcaseTagline     String?
+
   // Legal
   authorizedSignatory String?
   signatureUrl        String?
@@ -261,6 +266,7 @@ model Product {
   taxInclusive      Boolean            @default(false)
   currency          String             @default("INR")
   isActive          Boolean            @default(true)
+  showcaseConsent   Boolean            @default(false)
   images            String[]           @default([])
   organisationId    String             @db.ObjectId
   organisation      Organisation       @relation(fields: [organisationId], references: [id])
