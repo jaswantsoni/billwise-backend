@@ -320,6 +320,87 @@ exports.deleteProduct = async (req, res) => {
   }
 };
 
+exports.uploadProductImage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { imageBase64 } = req.body;
+
+    if (!imageBase64) return res.status(400).json({ error: 'imageBase64 is required' });
+
+    const product = await prisma.product.findFirst({
+      where: { id },
+      include: { organisation: { select: { userId: true } } }
+    });
+    if (!product || product.organisation.userId !== req.userId)
+      return res.status(404).json({ error: 'Product not found' });
+
+    if (product.images.length >= 5)
+      return res.status(400).json({ error: 'Maximum 5 images allowed per product' });
+
+    const cloudinary = require('cloudinary').v2;
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+    });
+
+    const result = await cloudinary.uploader.upload(imageBase64, {
+      folder: 'kampony/products',
+      resource_type: 'image',
+      public_id: `product-${id}-${Date.now()}`,
+      transformation: [{ width: 800, height: 800, crop: 'limit', quality: 'auto' }],
+    });
+
+    const updated = await prisma.product.update({
+      where: { id },
+      data: { images: [...product.images, result.secure_url] }
+    });
+
+    res.json({ success: true, imageUrl: result.secure_url, images: updated.images });
+  } catch (error) {
+    console.error('Upload product image error:', error);
+    res.status(500).json({ error: 'Failed to upload image', details: error.message });
+  }
+};
+
+exports.deleteProductImage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { imageUrl } = req.body;
+
+    if (!imageUrl) return res.status(400).json({ error: 'imageUrl is required' });
+
+    const product = await prisma.product.findFirst({
+      where: { id },
+      include: { organisation: { select: { userId: true } } }
+    });
+    if (!product || product.organisation.userId !== req.userId)
+      return res.status(404).json({ error: 'Product not found' });
+
+    // Extract Cloudinary public_id from URL
+    // URL format: https://res.cloudinary.com/<cloud>/image/upload/v<ver>/kampony/products/<public_id>.ext
+    const match = imageUrl.match(/\/kampony\/products\/([^.]+)/);
+    if (match) {
+      const cloudinary = require('cloudinary').v2;
+      cloudinary.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        api_key: process.env.CLOUDINARY_API_KEY,
+        api_secret: process.env.CLOUDINARY_API_SECRET,
+      });
+      await cloudinary.uploader.destroy(`kampony/products/${match[1]}`);
+    }
+
+    const updated = await prisma.product.update({
+      where: { id },
+      data: { images: product.images.filter((img) => img !== imageUrl) }
+    });
+
+    res.json({ success: true, images: updated.images });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete image', details: error.message });
+  }
+};
+
 exports.bulkUploadProducts = async (req, res) => {
   try {
     const {file} = req;
